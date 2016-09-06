@@ -1,3 +1,3 @@
 # RFTU
 Reliable File Transfer over UDP
-This project is used only for MW-OCTO training.
+This project is only used for MW-OCTO training.

@@ -1,8 +1,8 @@
 /*
-* Filename: rftu_sender.c
-* Author: OCTO team (Issac, Kevin)
-* Date: 06-Sep-2016
-*/
+ * Filename: rftu_sender.c
+ * Author: OCTO team (Issac, Kevin)
+ * Date: 06-Sep-2016
+ */
 /*************************************************************************/
 #include "../include/rftu.h"
 
@@ -31,7 +31,7 @@ unsigned char rftu_sender()
     int i;
 
 
-    // File Info
+    // File info
     memcpy(file_info.filename, rftu_filename, sizeof(rftu_filename));
     file_info.filesize = rftu_filesize;
 
@@ -68,8 +68,42 @@ unsigned char rftu_sender()
     timeout.tv_sec = RFTU_TIMEOUT;
     timeout.tv_usec = 0;
 
-    // Check timeout using select() function
+    // Set up the set of descriptors
     FD_ZERO(&fds);  // Let the set becomes all zero
     FD_ADD(socket_fd, &fds);  // Add the socket_fd to the set
-    select_result = select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
+
+    /*---START---*/
+    while(1)
+    {
+        select_result = select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
+        if (select_result == -1) // Error
+        {
+
+        }
+        else if (select_result == 0) // Time out
+        {
+
+        }
+        else // receive characters from fds
+        {
+
+        }
+    }
+}
+
+
+char* get_filename(char *path)
+{
+    return basename(path);
+}
+
+unsigned long int get_filesize(char *path)
+{
+    unsigned long int sz;
+    FILE* fp;
+    fp = open(path, O_RDONLY);
+    fseek(fp, 0L, SEEK_END);
+    sz = ftell(fp);
+    close(fp);
+    return sz;
 }
