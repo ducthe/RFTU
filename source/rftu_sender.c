@@ -15,11 +15,10 @@ unsigned char rftu_sender()
 
     int socket_fd; // socket file descriptor
     struct sockaddr_in receiver_addr; // receiver address
-    socklen_t slen = sizeof(receiver_addr);
 
-    unsigned int  seq            = 0;
-    unsigned char error_counter  = 0;
-    unsigned char flag_sending   = NO;
+    unsigned int  seq       = 0;
+    unsigned char error_cnt = 0;
+    unsigned char sending   = NO;
 
     fd_set fds; //set of file descriptors to be monitored by select()
     int select_result;
@@ -75,18 +74,80 @@ unsigned char rftu_sender()
     /*---START---*/
     while(1)
     {
+        if (sending == NO)
+        {
+            rftu_pkg_send.cmd = RFTU_CMD_INIT;
+            rftu_pkg_send.data = (unsigned char *)file_info;
+            sendto(socket_fd, (const void*)&rftu_pkg_send, sizeof(rftu_pkg_send), 0, (struct sockaddr*)&receiver_addr, sizeof(receiver_addr));
+        }
+        // Check time out using select() function
         select_result = select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
         if (select_result == -1) // Error
         {
-
+            printf("Error while waiting for packages\n");
         }
         else if (select_result == 0) // Time out
         {
-
+            error_cnt++;
+            if (sending == YES)
+            {
+                //TODO: resend
+            }
+            if (error_cnt == RFTU_MAX_RETRY)
+            {
+                printf("Over maximum retry.\n");
+                return RFTU_RET_ERROR;
+            }
         }
-        else // receive characters from fds
+        else // received characters from fds
         {
-            recvfrom(socket_fd,)
+            recvfrom(socket_fd, (void*)&rftu_pkg_receive, sizeof(rftu_pkg_receive), 0, (struct sockaddr*)&receiver_addr, sizeof(receiver_addr));
+            switch(rftu_pkg_receive.cmd)
+            {
+                case (RFTU_CMD_READY):
+                    if (sending == NO)
+                    {
+                        rftu_id = rftu_pkg_receive.id;
+                        Sb = 0;
+                        sending = YES;
+                    }
+                    break;
+                case (RFTU_CMD_ACK):
+                    if (sending == YES)
+                    {
+                        if (rftu_pkg_receive.seq > Sb)
+                        {
+                            error_cnt = 0;
+                            Sb = rftu_pkg_receive.seq;
+                            remove_package(windows, N, Sb);
+                            //TODO: add and send
+                        }
+                    }
+                    break;
+                case (RFTU_CMD_NOSPACE):
+                    printf("No available space at receiver machine.\n");
+                    if (sending == NO)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        return RFTU_RET_ERROR;
+                    }
+                case (RFTU_CMD_COMPLETED):
+                    if (sending == YES)
+                    {
+                        //TODO: closefile and close socket
+                    }
+                    break;
+                default: // RFTU_CMD_ERROR
+                    if (error_cnt == RFTU_MAX_RETRY)
+                    {
+                        printf("Over maximum retry.\n");
+                        return RFTU_RET_ERROR;
+                    }
+                    break;
+            }
         }
     }
 }
@@ -100,10 +161,9 @@ char* get_filename(char *path)
 unsigned long int get_filesize(char *path)
 {
     unsigned long int sz;
-    FILE* fp;
-    fp = open(path, O_RDONLY);
-    fseek(fp, 0L, SEEK_END);
-    sz = ftell(fp);
-    close(fp);
+    int fd;
+    fd = open(path, O_RDONLY);
+    sz = lseek(fd, (size_t)0, SEEK_END);
+    close(fd);
     return sz;
 }
