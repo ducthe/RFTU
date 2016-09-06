@@ -45,12 +45,12 @@ unsigned char rftu_sender()
     // Configure settings of the receiver address struct
     receiver_addr.sin_family = AF_INET;
     receiver_addr.port = htons(RFTU_PORT);
-    if (inet_aton(&rftu_ip, &receiver_addr.sin_addr) == 0)
+    if (inet_aton(rftu_ip, &receiver_addr.sin_addr) == 0)
     {
-        printf("...\n");
+        printf("The address is invalid.\n");
         return RFTU_RET_ERROR;
     }
-    memset(receiver_addr.sin_zero, '\0', sizeof(serverAddr.sin_zero));
+    memset(receiver_addr.sin_zero, '\0', sizeof(receiver_addr.sin_zero));
 
     // Specify value of window size N
     N = (rftu_filesize/RFTU_SEGMENT_SIZE) + 1;
@@ -63,4 +63,13 @@ unsigned char rftu_sender()
         windows->sent = NO;
         windows->ack = NO;
     }
+
+    // Initialize timeout
+    timeout.tv_sec = RFTU_TIMEOUT;
+    timeout.tv_usec = 0;
+
+    // Check timeout using select() function
+    FD_ZERO(&fds);  // Let the set becomes all zero
+    FD_ADD(socket_fd, &fds);  // Add the socket_fd to the set
+    select_result = select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
 }
