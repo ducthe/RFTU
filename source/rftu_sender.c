@@ -9,7 +9,7 @@
 unsigned char rftu_sender()
 {
     // Sender variables
-    struct fileInfo file_info;  // file info to be sent to receiver in INIT message
+    struct file_info_t file_info;  // file info to be sent to receiver in INIT message
     struct rftu_package_data_t rftu_pkg_send;    // package to be sent
     struct rftu_package_data_t rftu_pkg_receive; // used to store received package
 
@@ -29,10 +29,15 @@ unsigned char rftu_sender()
     struct windows_t *windows = NULL;
     int i;
     int file_fd;
+    socklen_t socklen = 0;
+    char* temp;
 
 
     // File info setup
-    memcpy(file_info.filename, get_filename(rftu_filename), sizeof(get_filename(rftu_filename)));
+    temp = (char*)malloc(sizeof(rftu_filename));
+    strcpy(temp, rftu_filename);
+    strcpy(file_info.filename, get_filename(temp));
+    free(temp);
     file_info.filesize = get_filesize(rftu_filename);
     rftu_filesize = file_info.filesize;
 
@@ -45,13 +50,14 @@ unsigned char rftu_sender()
 
     // Configure settings of the receiver address struct
     receiver_addr.sin_family = AF_INET;
-    receiver_addr.port = htons(RFTU_PORT);
+    receiver_addr.sin_port = htons(RFTU_PORT);
     if (inet_aton(rftu_ip, &receiver_addr.sin_addr) == 0)
     {
         printf("The address is invalid.\n");
         return RFTU_RET_ERROR;
     }
     memset(receiver_addr.sin_zero, '\0', sizeof(receiver_addr.sin_zero));
+    socklen = sizeof(receiver_addr);
 
     // Specify value of window size N
     N = (rftu_filesize/RFTU_SEGMENT_SIZE) + 1;
@@ -65,55 +71,76 @@ unsigned char rftu_sender()
         windows->ack = NO;
     }
 
-    // Initialize timeout
-    timeout.tv_sec = RFTU_TIMEOUT;
-    timeout.tv_usec = 0;
-
-    // Set up the set of descriptors
-    FD_ZERO(&fds);  // Let the file descriptor set becomes all zero
-    FD_ADD(socket_fd, &fds);  // Add the socket_fd to the set
-
     /*---START---*/
+    error_cnt = 0;
+    sending = NO;
     while(1)
     {
         if (sending == NO)
         {
-            file_fd = open(rftu_filename, O_RDONLY);
+            // Create INIT packet
             rftu_pkg_send.cmd = RFTU_CMD_INIT;
-            rftu_pkg_send.data = (unsigned char *)&file_info;
-            sendto(socket_fd, (const void*)&rftu_pkg_send, sizeof(rftu_pkg_send), 0, (struct sockaddr*)&receiver_addr, sizeof(receiver_addr));
+            rftu_pkg_send.id = 0;
+            rftu_pkg_send.seq = 0;
+            memcpy(rftu_pkg_send.data, &file_info, sizeof(file_info));
+
+            // Sent the INIT packet
+            sendto(socket_fd, (const void*)&rftu_pkg_send, sizeof(rftu_pkg_send), 0, (struct sockaddr*)&receiver_addr, socklen);
         }
+
+        // Initialize timeout
+        timeout.tv_sec = RFTU_TIMEOUT;
+        timeout.tv_usec = 0;
+
+        // Set up the set of descriptors
+        FD_ZERO(&fds);  // Let the file descriptor set becomes all zero
+        FD_SET(socket_fd, &fds);  // Add the socket_fd to the set
+
         // Check time out using select() function
         select_result = select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
         if (select_result == -1) // Error
         {
             printf("Error while waiting for packages\n");
+            return RFTU_RET_ERROR;
         }
         else if (select_result == 0) // Time out
         {
             error_cnt++;
+            if (error_cnt == RFTU_MAX_RETRY+1)
+            {
+                printf("Over maximum retry.\n");
+                shutdown(socket_fd, 2);
+                return RFTU_RET_ERROR;
+            }
             if (sending == YES)
             {
                 send_packages(windows, N, socket_fd, &receiver_addr, YES);
             }
-            if (error_cnt == RFTU_MAX_RETRY)
-            {
-                printf("Over maximum retry.\n");
-                return RFTU_RET_ERROR;
-            }
         }
         else // received characters from fds
         {
-            recvfrom(socket_fd, (void*)&rftu_pkg_receive, sizeof(rftu_pkg_receive), 0, (struct sockaddr*)&receiver_addr, sizeof(receiver_addr));
+            recvfrom(socket_fd, (void*)&rftu_pkg_receive, sizeof(rftu_pkg_receive), 0, (struct sockaddr*)&receiver_addr, &socklen);
+
+            // Switch the CMD fields in the received msg
             switch(rftu_pkg_receive.cmd)
             {
                 case RFTU_CMD_READY:
                     if (sending == NO)
                     {
-                        rftu_id = rftu_pkg_receive.id;
-                        Sb = 0;
-                        Sn = 0;
-                        sending = YES;
+                        if((file_fd = open(rftu_filename, O_RDONLY)) == -1)
+                        {
+                            printf("Openning file fails.\n");
+                            shutdown(socket_fd, 2);
+                            return RFTU_RET_ERROR;
+                        }
+                        rftu_id = rftu_pkg_receive.id;  // Get transmission ID
+                        Sb = 0;    // Set sequence base to 0
+                        Sn = 0;    // Set sequence number to 0
+                        sending = YES;  // let sending flag be YES
+
+                        // Sending the first portion of data
+                        add_packages(windows, N, file_fd, &Sn);
+                        send_packages(windows, N, socket_fd, &receiver_addr, NO);
                     }
                     break;
                 case RFTU_CMD_ACK:
@@ -144,12 +171,15 @@ unsigned char rftu_sender()
                     {
                         close(file_fd);
                         shutdown(socket_fd, 2);
+                        return RFTU_RET_OK;
                     }
                     break;
                 default: // RFTU_CMD_ERROR
-                    if (error_cnt == RFTU_MAX_RETRY)
+                    if (error_cnt == RFTU_MAX_RETRY+1)
                     {
                         printf("Over maximum retry.\n");
+                        close(file_fd);
+                        shutdown(socket_fd, 2);
                         return RFTU_RET_ERROR;
                     }
                     break;
@@ -225,16 +255,15 @@ void add_packages(struct windows_t *windows, unsigned char N, int file_fd, unsig
  */
 void send_packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all)
 {
-    /* the packets error when without ack returned => resent : all = YES*/
     int i;
-    static int pos_check = 0;   /* position check */
+    int pos_check = 0;   /* position check */
 
     for(i = 0; i < N; i++)
     {
         /* if send flag = NO: send the packets
          * if ack flag  = NO and all = YES (Resent required): Resend
          */
-        if(windows[pos_check].sent == NO || (windows[pos_check].ack == NO && all = YES))
+        if(windows[pos_check].sent == NO || (windows[pos_check].ack == NO && all == YES))
         {
             if(flag_verbose)
             {
@@ -250,9 +279,9 @@ void send_packages(struct windows_t *windows, unsigned char N, int socket_fd, st
             {
                 sendto(socket_fd, &windows[pos_check].package, sizeof(struct rftu_package_data_t), 0, (struct sockaddr *) si_other, (socklen_t) sizeof(*si_other));
                 windows[pos_check].sent = YES;
+                pos_check++;
             }
         }
-        pos_check++;
         /* pos_check = pos_check % 8;  #<{(| window size max = 8|)}># */
     }
 }
