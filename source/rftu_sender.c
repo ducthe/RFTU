@@ -176,8 +176,8 @@ unsigned long int get_filesize(char *path)
 
 // When a packet was sent and sender received ack, sent flag = 1 and ack flag = 1
 // Then this packet will be removed from windows, a new packet will be added to this position.
- void remove_package(struct windows_t *windows, unsigned char N, unsigned int seq)
- {
+void remove_package(struct windows_t *windows, unsigned char N, unsigned int seq)
+{
     /* find all packets with sequence number lower than received sequence number and mark them all as ACK returned */
     int i;
     for(i = 0; i < N; i++)
@@ -185,7 +185,7 @@ unsigned long int get_filesize(char *path)
         if(windows[i].package.seq < seq)
             windows[i].ack = YES;
     }
- }
+}
 
 
 void add_packages(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq)
@@ -220,7 +220,7 @@ void add_packages(struct windows_t *windows, unsigned char N, int file_fd, unsig
 
 /* send_packages() function.
  * send_packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all)
- * all = YES : send all packets in the windows regardless of the value of windows[i].sent
+ * all = YES: send all packets in the windows regardless of the value of windows[i].sent
  * all = NO : only send the packets with windows[i].sent = NO
  */
 void send_packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all)
