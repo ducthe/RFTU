@@ -167,3 +167,91 @@ unsigned long int get_filesize(char *path)
     close(fd);
     return sz;
 }
+
+// When a packet was sent and sender received ack then sent flag = 1 and ack flag = 1
+// and this packet will be removed from windows, a new packet will be added this position.
+ void remove_package(struct windows_t *windows, unsigned char N, unsigned int seq)
+ {
+    /* find all packets with sequence number lower than received sequence number and mark them all as ACK returned */  
+    int i;
+    for(i = 0; i < N; i++)
+    {
+        if(windows[i].package.seq < seq)
+            windows[i].ack = YES;
+    }
+ }
+
+
+void add_packages(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq)
+{
+    int i;
+    for(i = 0; i < N; i++)
+    {
+        if(windows[i].sent == YES && windows[i].ack == YES)
+        {
+            /* Get size of packet using read() function 
+             * It returns the number of data bytes actually read, 
+             * which may be less than the number requested.*/
+            int size_of_packet = 0;
+
+            size_of_packet= read(file_fd, windows[i].package.data, RFTU_SEGMENT_SIZE);  
+
+            if(size_of_packet > 0)      
+            {
+                windows[i].sent = NO;
+                windows[i].ack  = NO;
+
+                windows[i].package.cmd      = RFTU_CMD_DATA;
+                windows[i].package.id       = rftu_id;
+                windows[i].package.seq      = *seq;
+                windows[i].package.size     = size_of_packet;
+
+                (*seq)++;                   /* increase sequence number after add new packet*/
+            }
+        }
+    }
+}
+
+/* send_packages() function.
+ * send_packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all) 
+ * all = YES : using when resend packets
+ * all = NO : using when send packets
+ * all should be change by status
+ */
+
+void send_packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all)
+{
+    /* the packets error when without ack returned => resent : all = YES*/
+    int i;
+    static int pos_check = 0;   /* position check */
+
+    for(i = 0; i < N; i++)
+    {
+        /* if send flag = NO: send the packets 
+         * if ack flag  = NO and all = YES (Resent required): Resend
+         */
+        if(windows[pos_check].sent == NO || (windows[pos_check].ack == NO && all = YES))
+        {
+            if(flag_verbose)
+            {
+                printf("[SENDER] Send DATA sequence number: %u\n", windows[pos_check].package.seq);
+            }
+            
+            if(rand() % 4 == 0)
+            {
+                printf("[SENDER] Dropped packet sequence number: %u\n", windows[pos_check].package.seq);
+                windows[pos_check].sent = YES;
+            }   
+            else 
+            {
+                sendto(socket_fd, &windows[pos_check].package, sizeof(struct rftu_package_data_t), 0, (struct sockaddr *) si_other, (socklen_t) sizeof(*si_other));
+                windows[pos_check].sent = YES;              
+            }
+
+        }
+
+        pos_check++;
+        pos_check = pos_check % 8;  /* window size max = 8*/
+    }
+
+}
