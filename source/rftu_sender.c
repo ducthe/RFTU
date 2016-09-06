@@ -16,7 +16,7 @@ unsigned char rftu_sender()
     int socket_fd; // socket file descriptor
     struct sockaddr_in receiver_addr; // receiver address
 
-    unsigned int  seq       = 0;
+    unsigned int  seq       = 0;    // sequence number
     unsigned char error_cnt = 0;
     unsigned char sending   = NO;
 
@@ -28,6 +28,7 @@ unsigned char rftu_sender()
     unsigned int N = 0;  // size of window
     struct windows_t *windows = NULL;
     int i;
+    int file_fd;
 
 
     // File info
@@ -168,11 +169,11 @@ unsigned long int get_filesize(char *path)
     return sz;
 }
 
-// When a packet was sent and sender received ack then sent flag = 1 and ack flag = 1
-// and this packet will be removed from windows, a new packet will be added this position.
+// When a packet was sent and sender received ack, sent flag = 1 and ack flag = 1
+// Then this packet will be removed from windows, a new packet will be added to this position.
  void remove_package(struct windows_t *windows, unsigned char N, unsigned int seq)
  {
-    /* find all packets with sequence number lower than received sequence number and mark them all as ACK returned */  
+    /* find all packets with sequence number lower than received sequence number and mark them all as ACK returned */
     int i;
     for(i = 0; i < N; i++)
     {
@@ -189,14 +190,14 @@ void add_packages(struct windows_t *windows, unsigned char N, int file_fd, unsig
     {
         if(windows[i].sent == YES && windows[i].ack == YES)
         {
-            /* Get size of packet using read() function 
-             * It returns the number of data bytes actually read, 
+            /* Get size of packet using read() function
+             * It returns the number of data bytes actually read,
              * which may be less than the number requested.*/
             int size_of_packet = 0;
 
-            size_of_packet= read(file_fd, windows[i].package.data, RFTU_SEGMENT_SIZE);  
+            size_of_packet= read(file_fd, windows[i].package.data, RFTU_SEGMENT_SIZE);
 
-            if(size_of_packet > 0)      
+            if(size_of_packet > 0)
             {
                 windows[i].sent = NO;
                 windows[i].ack  = NO;
@@ -213,12 +214,10 @@ void add_packages(struct windows_t *windows, unsigned char N, int file_fd, unsig
 }
 
 /* send_packages() function.
- * send_packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all) 
- * all = YES : using when resend packets
- * all = NO : using when send packets
- * all should be change by status
+ * send_packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all)
+ * all = YES : send all packets in the windows regardless of the value of windows[i].sent
+ * all = NO : only send the packets with windows[i].sent = NO
  */
-
 void send_packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all)
 {
     /* the packets error when without ack returned => resent : all = YES*/
@@ -227,7 +226,7 @@ void send_packages(struct windows_t *windows, unsigned char N, int socket_fd, st
 
     for(i = 0; i < N; i++)
     {
-        /* if send flag = NO: send the packets 
+        /* if send flag = NO: send the packets
          * if ack flag  = NO and all = YES (Resent required): Resend
          */
         if(windows[pos_check].sent == NO || (windows[pos_check].ack == NO && all = YES))
@@ -236,22 +235,19 @@ void send_packages(struct windows_t *windows, unsigned char N, int socket_fd, st
             {
                 printf("[SENDER] Send DATA sequence number: %u\n", windows[pos_check].package.seq);
             }
-            
+
             if(rand() % 4 == 0)
             {
                 printf("[SENDER] Dropped packet sequence number: %u\n", windows[pos_check].package.seq);
                 windows[pos_check].sent = YES;
-            }   
-            else 
+            }
+            else
             {
                 sendto(socket_fd, &windows[pos_check].package, sizeof(struct rftu_package_data_t), 0, (struct sockaddr *) si_other, (socklen_t) sizeof(*si_other));
-                windows[pos_check].sent = YES;              
+                windows[pos_check].sent = YES;
             }
-
         }
-
         pos_check++;
-        pos_check = pos_check % 8;  /* window size max = 8*/
+        /* pos_check = pos_check % 8;  #<{(| window size max = 8|)}># */
     }
-
 }
