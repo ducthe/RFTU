@@ -1,3 +1,3 @@
 # RFTU
-RFTU_Socket
-It's just for MW-OCTO training 
+Reliable File Transfer over UDP
+This project is used only for MW-OCTO training.
