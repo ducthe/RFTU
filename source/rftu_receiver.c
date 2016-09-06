@@ -11,7 +11,7 @@
 
 // Variables
 
-unsigned char path[200] = "~/Downloads/";
+unsigned char path[250] = "~/Downloads/";
 
 struct sockaddr_in sender_soc, receiver_soc;
 int sd, fd; // socket descriptor and file descriptor
@@ -26,7 +26,8 @@ fd_set set;
 int waiting;
 unsigned char error_cnt = 0;
 unsigned int Rn;
-unsigned long int receiver_bytes;
+int rftu_id;
+unsigned long int received_bytes;
 
 
 unsigned char rftu_receiver(void)
@@ -100,11 +101,13 @@ unsigned char rftu_receiver(void)
 				    		// Send command READY to sender
 				    		rftu_pck_send_cmd.cmd = RFTU_CMD_READY;
 				    		rftu_pck_send_cmd.id = rand();
+				    		rftu_id = rftu_pck_send_cmd.id;
+				    		printf("INIT cmd.id: %d\n",rftu_id );
 				    		sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 , 
 				    				(struct sockaddr *) &sender_soc, sizeof(sender_soc));
 
 				    		receiving = YES;
-				    		receiver_bytes = 0;
+				    		received_bytes = 0;
 
 
 				    	}
@@ -114,19 +117,78 @@ unsigned char rftu_receiver(void)
 				    case (RFTU_CMD_DATA):
 				    	if (receiving == YES)
 				    	{
+				    		if (rftu_pck_rcv.id == rftu_id)
+							{
+								if (rftu_pck_rcv.seq == Rn) 
+									{
+										write(fd, rftu_pck_rcv.data, rftu_pck_rcv.size);
+										received_bytes += rftu_pck_rcv.size;
+										Rn++;
+										error_cnt = 0;
+										rftu_pck_send_cmd.cmd  = RFTU_CMD_ACK;
+										rftu_pck_send_cmd.seq  = Rn;
+										rftu_pck_send_cmd.size = (received_bytes * 100 / rftu_filesize);
 
-				    	}
+										sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 ,
+				    							 (struct sockaddr *) &sender_soc, sizeof(sender_soc));
+
+										// When received file completly
+										if (received_bytes == file_info.filesize)
+										{
+
+											printf("[RECEIVER] Sending COMPLETED cmd\n");
+
+											// send complete command
+											rftu_pck_send_cmd.cmd  = RFTU_CMD_COMPLETED;
+											rftu_pck_send_cmd.id   = rftu_id;
+											rftu_pck_send_cmd.seq  = Rn;
+											rftu_pck_send_cmd.size = (received_bytes * 100 / rftu_filesize);
+											
+											sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 ,
+				    								 (struct sockaddr *) &sender_soc, sizeof(sender_soc));
+
+											// close file
+											close(fd);
+											printf("Received file completed\n\n");
+											printf(" Waiting... for INIT cmd !\n");
+
+											// dont get any DATA segment
+											receiving = NO;
+										}
+
+										error_cnt = 0;
+									}
+								}
+								else
+									{
+										printf("[RECEIVER] Unknown ID: %i\n", rftu_pck_rcv.id);
+									}
+								}
+
+				    		}
 				    	break;
 				    default: 
-
+						printf("Unknown command %u\n", rftu_pck_rcv.cmd);
 				    	break;
 				}
 
+		if (receiving == YES)
+		{
+			if (error_cnt == RFTU_MAX_RETRY)
+			{
+				printf("Error: Connection\n\n");
 
+				// close file
+				close(fd);
+				printf(" Waiting... for INIT command\n");
+				receiving = NO;
+
+				error_cnt = 0;
+			}
 		}
-
-
 	}
 
-	return 0;
+
+	close(sd);
+	return RFTU_RETURN_OK;
 }
