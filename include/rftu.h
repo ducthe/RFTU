@@ -50,11 +50,6 @@
 #define YES 1
 #define NO  0
 
-// RFTU RUNNING MODES
-#define RFTU_MODE_NON	   -1
-#define RFTU_MODE_SENDER 	0
-#define RFTU_MODE_RECEIVER 	1
-
 // RFTU SETTINGS
 #define RFTU_SEGMENT_SIZE   1024
 #define RFTU_PORT 			8888
