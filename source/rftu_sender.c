@@ -16,7 +16,7 @@ unsigned char rftu_sender()
     int socket_fd; // socket file descriptor
     struct sockaddr_in receiver_addr; // receiver address
 
-    unsigned int  seq       = 0;    // sequence number
+    unsigned int  Sn        = 0;    // sequence number
     unsigned char error_cnt = 0;
     unsigned char sending   = NO;
 
@@ -31,9 +31,10 @@ unsigned char rftu_sender()
     int file_fd;
 
 
-    // File info
-    memcpy(file_info.filename, rftu_filename, sizeof(rftu_filename));
-    file_info.filesize = rftu_filesize;
+    // File info setup
+    memcpy(file_info.filename, get_filename(rftu_filename), sizeof(get_filename(rftu_filename)));
+    file_info.filesize = get_filesize(rftu_filename);
+    rftu_filesize = file_info.filesize;
 
     // Socket creation
     if ((socket_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
@@ -69,7 +70,7 @@ unsigned char rftu_sender()
     timeout.tv_usec = 0;
 
     // Set up the set of descriptors
-    FD_ZERO(&fds);  // Let the set becomes all zero
+    FD_ZERO(&fds);  // Let the file descriptor set becomes all zero
     FD_ADD(socket_fd, &fds);  // Add the socket_fd to the set
 
     /*---START---*/
@@ -77,8 +78,9 @@ unsigned char rftu_sender()
     {
         if (sending == NO)
         {
+            file_fd = open(rftu_filename, O_RDONLY);
             rftu_pkg_send.cmd = RFTU_CMD_INIT;
-            rftu_pkg_send.data = (unsigned char *)file_info;
+            rftu_pkg_send.data = (unsigned char *)&file_info;
             sendto(socket_fd, (const void*)&rftu_pkg_send, sizeof(rftu_pkg_send), 0, (struct sockaddr*)&receiver_addr, sizeof(receiver_addr));
         }
         // Check time out using select() function
@@ -92,7 +94,7 @@ unsigned char rftu_sender()
             error_cnt++;
             if (sending == YES)
             {
-                //TODO: resend
+                send_packages(windows, N, socket_fd, &receiver_addr, YES);
             }
             if (error_cnt == RFTU_MAX_RETRY)
             {
@@ -105,15 +107,16 @@ unsigned char rftu_sender()
             recvfrom(socket_fd, (void*)&rftu_pkg_receive, sizeof(rftu_pkg_receive), 0, (struct sockaddr*)&receiver_addr, sizeof(receiver_addr));
             switch(rftu_pkg_receive.cmd)
             {
-                case (RFTU_CMD_READY):
+                case RFTU_CMD_READY:
                     if (sending == NO)
                     {
                         rftu_id = rftu_pkg_receive.id;
                         Sb = 0;
+                        Sn = 0;
                         sending = YES;
                     }
                     break;
-                case (RFTU_CMD_ACK):
+                case RFTU_CMD_ACK:
                     if (sending == YES)
                     {
                         if (rftu_pkg_receive.seq > Sb)
@@ -121,11 +124,12 @@ unsigned char rftu_sender()
                             error_cnt = 0;
                             Sb = rftu_pkg_receive.seq;
                             remove_package(windows, N, Sb);
-                            //TODO: add and send
+                            add_packages(windows, N, file_fd, &Sn);
+                            send_packages(windows, N, socket_fd, &receiver_addr, NO);
                         }
                     }
                     break;
-                case (RFTU_CMD_NOSPACE):
+                case RFTU_CMD_NOSPACE:
                     printf("No available space at receiver machine.\n");
                     if (sending == NO)
                     {
@@ -135,10 +139,11 @@ unsigned char rftu_sender()
                     {
                         return RFTU_RET_ERROR;
                     }
-                case (RFTU_CMD_COMPLETED):
+                case RFTU_CMD_COMPLETED:
                     if (sending == YES)
                     {
-                        //TODO: closefile and close socket
+                        close(file_fd);
+                        shutdown(socket_fd, 2);
                     }
                     break;
                 default: // RFTU_CMD_ERROR
