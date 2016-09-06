@@ -86,7 +86,7 @@ unsigned char rftu_sender()
         }
         else // receive characters from fds
         {
-
+            recvfrom(socket_fd,)
         }
     }
 }

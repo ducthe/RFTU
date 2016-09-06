@@ -21,6 +21,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <libgen.h>
 
 /*-------------------*/
 /*------MACROS-------*/
@@ -45,11 +46,7 @@
 #define YES 1
 #define NO  0
 
-<<<<<<< HEAD
-// RFTU SETTINGS
-=======
 // RFTU Default Settings
->>>>>>> 587fd503cd8fed17063e907c5a3c4adc3b52e22d
 #define RFTU_SEGMENT_SIZE   1024
 #define RFTU_PORT 			8888
 #define RFTU_TIMEOUT		3
