@@ -110,7 +110,7 @@ unsigned char rftu_receiver(void)
 				    		rftu_pck_send_cmd.cmd = RFTU_CMD_READY;
 				    		rftu_pck_send_cmd.id = rand();
 				    		rftu_id = rftu_pck_send_cmd.id;
-				    		printf("INIT cmd.id: %d\n",rftu_id );
+				    		printf("READY cmd.id: %d\n", rftu_id );
 				    		sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 , 
 				    				(struct sockaddr *) &sender_soc, socklen);
 
