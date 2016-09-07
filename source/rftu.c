@@ -1,8 +1,7 @@
 /*
  * Filename: main.c
- * Author: Henry
- * Contributor: Peter + Richard
- * Date: 01-Sep-2016
+ * Author: Richard + Peter
+ * Date: 06-Sep-2016
  *
  *
 
@@ -13,13 +12,16 @@
 #include "rftu.h"
 /*Defined*/
 
-flag_verbose = NO;
-flag_server = NO;
-flag_file_ok = NO;
-flag_ip_ok = NO;
+unsigned char flag_verbose = NO;
+unsigned char flag_server = NO;
+unsigned char flag_file_ok = NO;
+unsigned char flag_ip_ok = NO;
+
+char                 rftu_filename[256];
+char                 rftu_ip[20];
 
 static int option;
-int main()
+int main(int argc, char *argv[])
 {
     while(option = getopt(argc, argv, "f:t:sv") != -1)
     {
@@ -34,6 +36,7 @@ int main()
                 else
                 {
                     printf("%s\n", "Error: File doesn't exist!!!!");
+                    disp_help();
                     return RFTU_RET_ERROR;
                 }
                 break;
@@ -46,6 +49,7 @@ int main()
                 else
                 {
                     printf("%s\n", "Error: IP is wrong!!!");
+                    disp_help();
                     return RFTU_RET_ERROR;
                 }
                 break;
@@ -60,7 +64,20 @@ int main()
                 return RFTU_RET_ERROR;
         }
     }
-    while(option = getopt_long(argv, argc, "h", long_options, &option_index) != -1)
+    /**
+     * if typed --help
+     */
+    static struct option long_options[] =
+    {
+        /* These options don’t set a flag.
+         We distinguish them by their indices. */
+        {"help",     no_argument,       0, 'h'},
+        {0, 0, 0, 0}
+    };
+  /* getopt_long stores the option index here. */
+    int option_index = 0;
+
+    while(option = getopt_long(argc, argv, "h", long_options, &option_index) != -1)
     {
         if(option == 'h')
         {
@@ -73,14 +90,15 @@ int main()
     {
         rftu_sender();
     }
+
     if(flag_server == YES)
     {
         rftu_receiver();
     }
-    else
-    {
-        disp_help();
-    }
+    // else
+    // {
+    //     disp_help();
+    // }
     return RFTU_RET_OK;
 }
 
@@ -88,7 +106,7 @@ unsigned char check_ip(char *path)
 {
     unsigned int addr[4];
     int i;
-    int c = sscanf(path, %3u.%3u.%3u.%3u, &addr[0], &addr[1], &addr[2], &addr[3]);
+    int c = sscanf(path, "%3u.%3u.%3u.%3u", &addr[0], &addr[1], &addr[2], &addr[3]);
     if(c != 4)
     {
         return NO;
