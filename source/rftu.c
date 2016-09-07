@@ -31,7 +31,8 @@ int main(int argc, char *argv[])
                 if(check_file_exist(optarg) == YES)
                 {
                     flag_file_ok = YES;
-                    strcp(rftu_filename, optarg);
+                    memset(rftu_filename, '\0', strlen(rftu_filename));
+                    strcpy(rftu_filename, optarg);
                 }
                 else
                 {
@@ -44,7 +45,8 @@ int main(int argc, char *argv[])
                 if(check_ip(optarg) == YES)
                 {
                     flag_ip_ok = YES;
-                    strcp(rftu_ip, optarg);
+                    memset(rftu_filename, '\0', strlen(rftu_filename));
+                    strcpy(rftu_ip, optarg);
                 }
                 else
                 {
