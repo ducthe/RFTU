@@ -11,7 +11,7 @@
 
 // Variables
 
-unsigned char path[255] = "home";
+char path[255] = "/home/";
 
 struct sockaddr_in sender_soc, receiver_soc;
 int sd, fd; // socket descriptor and file descriptor
@@ -59,7 +59,7 @@ unsigned char rftu_receiver(void)
 
 	while(1)
 	{
-		//Set time out
+		//Set time outcd
 		timeout.tv_sec = RFTU_TIMEOUT;
 		timeout.tv_usec = 0;
 		// Wait Packet
