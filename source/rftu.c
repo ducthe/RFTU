@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
                 if(check_ip(optarg) == YES)
                 {
                     flag_ip_ok = YES;
-                    memset(rftu_filename, '\0', strlen(rftu_filename));
+                    memset(rftu_ip, '\0', strlen(rftu_ip));
                     strcpy(rftu_ip, optarg);
                 }
                 else
