@@ -134,11 +134,12 @@ unsigned char check_file_exist(char *path)
 
 void disp_help(void)
 {
-    printf("\n%s\n", "This is help for you\
-            rftu [-f /path/filename -t destination] [-s] [-v] [-h]\n\n\
+    printf("\n%s\n", "Here are instructions for you\n\n\n\
+            rftu [-f /path/filename -t destination] [-s] [-v]\n\n\
+            rftu [--help] or [-h]\n\n\
             -s: Run as server mode. Files will be overwriten if existed\n\n\
             -f: path to file that will be sent, must have -t option\n\
             -t: IP of destination address, in format X.X.X.X, in pair with -f option\n\n\
             -v: show progress information, this will slow down the progress\n\n\
-            -h: show help information\n\n");
+            -h of --help: show help information\n\n");
 }
