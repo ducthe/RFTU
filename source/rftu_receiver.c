@@ -29,6 +29,7 @@ unsigned int Rn;
 unsigned short rftu_id;
 unsigned long int received_bytes;
 unsigned long int   rftu_filesize;
+socklen_t socklen;
 
 
 unsigned char rftu_receiver(void)
@@ -45,6 +46,9 @@ unsigned char rftu_receiver(void)
 	receiver_soc.sin_family      = AF_INET;
 	receiver_soc.sin_port        = htons(RFTU_PORT);
 	receiver_soc.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    socklen = sizeof(sender_soc);
+
 	if ( bind(sd, (struct sockaddr *)&receiver_soc, sizeof(receiver_soc)) != 0 ) // Create a socket for receiver
 	{
     	printf("Not binded\n");
@@ -75,7 +79,7 @@ unsigned char rftu_receiver(void)
 				break;
 			default: // Read new packet
 				recvfrom(sd, &rftu_pck_rcv, sizeof(rftu_pck_rcv), 0, \
-                    (struct sockaddr *)&sender_soc, sizeof(sender_soc));
+                    (struct sockaddr *)&sender_soc, &socklen);
 				// check the commanders
 				switch(rftu_pck_rcv.cmd)
 				{
@@ -94,7 +98,7 @@ unsigned char rftu_receiver(void)
 				    		// Send command NOSPACE to sender
 				    		rftu_pck_send_cmd.cmd = RFTU_CMD_NOSPACE;
 				    		sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 ,
-				    				 (struct sockaddr *) &sender_soc, sizeof(sender_soc));
+				    				 (struct sockaddr *) &sender_soc, socklen);
 
 				    	}
 				    	else
@@ -105,7 +109,7 @@ unsigned char rftu_receiver(void)
 				    		rftu_id = rftu_pck_send_cmd.id;
 				    		printf("INIT cmd.id: %d\n",rftu_id );
 				    		sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 , 
-				    				(struct sockaddr *) &sender_soc, sizeof(sender_soc));
+				    				(struct sockaddr *) &sender_soc, socklen);
 
 				    		receiving = YES;
 				    		received_bytes = 0;
@@ -131,7 +135,7 @@ unsigned char rftu_receiver(void)
 										rftu_pck_send_cmd.size = (received_bytes * 100 / rftu_filesize);
 
 										sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 ,
-				    							 (struct sockaddr *) &sender_soc, sizeof(sender_soc));
+				    							 (struct sockaddr *) &sender_soc, socklen);
 
 										// When received file completly
 										if (received_bytes == file_info.filesize)
@@ -146,7 +150,7 @@ unsigned char rftu_receiver(void)
 											rftu_pck_send_cmd.size = (received_bytes * 100 / rftu_filesize);
 											
 											sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 ,
-				    								 (struct sockaddr *) &sender_soc, sizeof(sender_soc));
+				    								 (struct sockaddr *) &sender_soc, socklen);
 
 											// close file
 											close(fd);
