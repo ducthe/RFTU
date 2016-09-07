@@ -10,8 +10,8 @@ unsigned char rftu_sender()
 {
     // Sender variables
     struct file_info_t file_info;  // file info to be sent to receiver in INIT message
-    struct rftu_package_data_t rftu_pkg_send;    // package to be sent
-    struct rftu_package_data_t rftu_pkg_receive; // used to store received package
+    struct rftu_packet_data_t rftu_pkg_send;    // package to be sent
+    struct rftu_packet_data_t rftu_pkg_receive; // used to store received package
 
     int socket_fd; // socket file descriptor
     struct sockaddr_in receiver_addr; // receiver address
@@ -63,7 +63,7 @@ unsigned char rftu_sender()
     }
 
     // Specify value of window size N
-    N = (rftu_filesize/RFTU_SEGMENT_SIZE) + 1;
+    N = (rftu_filesize/RFTU_FRAME_SIZE) + 1;
     N = (N > RFTU_WINDOW_SIZE)? RFTU_WINDOW_SIZE : N;
 
     // Initialize sending window
@@ -191,7 +191,8 @@ unsigned char rftu_sender()
                     }
                     break;
 
-                case RFTU_CMD_ERROR:
+                /* case RFTU_CMD_ERROR: */
+                default:    // RFTU_CMD_ERROR and others
                     if (error_cnt == RFTU_MAX_RETRY+1)
                     {
                         printf("[SENDER] Over retry limit\n");
@@ -201,8 +202,8 @@ unsigned char rftu_sender()
                     }
                     break;
 
-                default:
-                    break;
+                /* default: */
+                /*     break; */
             }
         }
     }
@@ -249,7 +250,7 @@ void add_packages(struct windows_t *windows, unsigned char N, int file_fd, unsig
              * which may be less than the number requested.*/
             int size_of_packet = 0;
 
-            size_of_packet = read(file_fd, windows[i].package.data, RFTU_SEGMENT_SIZE);
+            size_of_packet = read(file_fd, windows[i].package.data, RFTU_FRAME_SIZE);
 
             if(size_of_packet > 0)
             {
@@ -295,7 +296,7 @@ void send_packages(struct windows_t *windows, unsigned char N, int socket_fd, st
                 continue;
             }
 #endif
-            sendto(socket_fd, &windows[pos_check].package, sizeof(struct rftu_package_data_t), 0, (struct sockaddr *) si_other, (socklen_t) sizeof(*si_other));
+            sendto(socket_fd, &windows[pos_check].package, sizeof(struct rftu_packet_data_t), 0, (struct sockaddr *) si_other, (socklen_t) sizeof(*si_other));
             windows[pos_check].sent = YES;
         }
         pos_check++;

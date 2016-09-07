@@ -48,7 +48,7 @@
 #define NO  0
 
 // RFTU Default Settings
-#define RFTU_SEGMENT_SIZE   1024
+#define RFTU_FRAME_SIZE     1024
 #define RFTU_PORT 			8888
 #define RFTU_TIMEOUT		3
 #define RFTU_MAX_RETRY		10
@@ -61,16 +61,16 @@ extern unsigned char flag_file_ok;
 extern unsigned char flag_ip_ok;
 
 // RFTU Data Package
-struct rftu_package_data_t {
+struct rftu_packet_data_t {
 	unsigned char 	cmd;						/* if cmd = DATA or INIT, size and data is available */
 	unsigned char 	id;
 	unsigned int  	seq;
 	unsigned short 	size;
-	unsigned char 	data[RFTU_SEGMENT_SIZE];
+	unsigned char 	data[RFTU_FRAME_SIZE];
 };
 
 // RFTU Command Package
-struct rftu_package_cmd_t {
+struct rftu_packet_cmd_t {
 	unsigned char 	cmd;
 	unsigned char 	id;
 	unsigned int  	seq;
@@ -87,7 +87,7 @@ struct file_info_t {
 struct windows_t {
 	unsigned char sent;
 	unsigned char ack;
-	struct rftu_package_data_t package;
+	struct rftu_packet_data_t package;
 };
 
 // RFTU Global Variables
@@ -104,7 +104,6 @@ extern unsigned short 		rftu_id;
 void 			disp_help(void);
 unsigned char 	check_ip(char *ip);
 unsigned char 	check_file_exist(char *path);
-void 			socket_error(int socket_fd, char *message);
 
 // Sender functions - in rftu_sender.c
 unsigned char 		rftu_sender(void);

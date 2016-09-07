@@ -17,8 +17,8 @@ unsigned char flag_server = NO;
 unsigned char flag_file_ok = NO;
 unsigned char flag_ip_ok = NO;
 
-char                 rftu_filename[256];
-char                 rftu_ip[20];
+char    rftu_filename[256];
+char    rftu_ip[20];
 
 static int option;
 int main(int argc, char *argv[])

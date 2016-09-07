@@ -1,3 +1,11 @@
+###########################################################
+#
+# File name: .gitignore
+# Author: Kevin
+# Description: ignore some files when committing or pushing
+#
+###########################################################
+
 # Object file and executable file
 *.o
 rftu

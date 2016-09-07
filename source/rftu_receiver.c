@@ -2,6 +2,7 @@
 
 * Filename : rftu_receiver.c
 * Author: Peter + Richard
+* Contributor: Kevin
 * Date : 01-Sep-2016
 
 
@@ -18,8 +19,8 @@ int sd, fd; // socket descriptor and file descriptor
 
 
 struct file_info_t file_info; // File transfered
-struct rftu_package_cmd_t  rftu_pck_send_cmd; 
-struct rftu_package_data_t rftu_pck_rcv; 
+struct rftu_packet_cmd_t  rftu_pkt_send_cmd; 
+struct rftu_packet_data_t rftu_pkt_rcv; 
 struct timeval timeout; // set time out
 char receiving = NO;
 fd_set set;
@@ -78,16 +79,16 @@ unsigned char rftu_receiver(void)
 				printf("Error when waiting for package \n");
 				break;
 			default: // Read new packet
-				recvfrom(sd, &rftu_pck_rcv, sizeof(rftu_pck_rcv), 0, \
+				recvfrom(sd, &rftu_pkt_rcv, sizeof(rftu_pkt_rcv), 0, \
                     (struct sockaddr *)&sender_soc, &socklen);
 				// check the commanders
-				switch(rftu_pck_rcv.cmd)
+				switch(rftu_pkt_rcv.cmd)
 				{
 					case (RFTU_CMD_INIT):
 						if(receiving == NO)
 				    	{
 					   	 	// Open file
-					    	file_info = *((struct file_info_t *) &rftu_pck_rcv.data);
+					    	file_info = *((struct file_info_t *) &rftu_pkt_rcv.data);
 					    	printf("File info:\n File name : %s, Filesize: %ld bytes \n", file_info.filename, file_info.filesize);
 					    	// Create the file to save
 					    	strcat(path, getlogin());
@@ -99,19 +100,19 @@ unsigned char rftu_receiver(void)
 					    	{
 					    		printf("There is nospace, cannot create the file\n");
 					    		// Send command NOSPACE to sender
-					    		rftu_pck_send_cmd.cmd = RFTU_CMD_NOSPACE;
-					    		sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 ,
+					    		rftu_pkt_send_cmd.cmd = RFTU_CMD_NOSPACE;
+					    		sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 ,
 					    				 (struct sockaddr *) &sender_soc, socklen);
 
 				    	}
 				    	else
 				    	{
 				    		// Send command READY to sender
-				    		rftu_pck_send_cmd.cmd = RFTU_CMD_READY;
-				    		rftu_pck_send_cmd.id = rand();
-				    		rftu_id = rftu_pck_send_cmd.id;
+				    		rftu_pkt_send_cmd.cmd = RFTU_CMD_READY;
+				    		rftu_pkt_send_cmd.id = rand();
+				    		rftu_id = rftu_pkt_send_cmd.id;
 				    		printf("READY cmd.id: %d\n", rftu_id );
-				    		sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 , 
+				    		sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 , 
 				    				(struct sockaddr *) &sender_soc, socklen);
 
 				    		receiving = YES;
@@ -125,19 +126,19 @@ unsigned char rftu_receiver(void)
 				    case (RFTU_CMD_DATA):
 				    	if (receiving == YES)
 				    	{
-				    		if (rftu_pck_rcv.id == rftu_id)
+				    		if (rftu_pkt_rcv.id == rftu_id)
 							{
-								if (rftu_pck_rcv.seq == Rn) 
+								if (rftu_pkt_rcv.seq == Rn) 
 									{
-										write(fd, rftu_pck_rcv.data, rftu_pck_rcv.size);
-										received_bytes += rftu_pck_rcv.size;
+										write(fd, rftu_pkt_rcv.data, rftu_pkt_rcv.size);
+										received_bytes += rftu_pkt_rcv.size;
 										Rn++;
 										error_cnt = 0;
-										rftu_pck_send_cmd.cmd  = RFTU_CMD_ACK;
-										rftu_pck_send_cmd.seq  = Rn;
-										rftu_pck_send_cmd.size = (received_bytes * 100 / file_info.filesize);
+										rftu_pkt_send_cmd.cmd  = RFTU_CMD_ACK;
+										rftu_pkt_send_cmd.seq  = Rn;
+										rftu_pkt_send_cmd.size = (received_bytes * 100 / file_info.filesize);
 
-										sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 ,
+										sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 ,
 				    							 (struct sockaddr *) &sender_soc, socklen);
 
 										// When received file completly
@@ -147,12 +148,12 @@ unsigned char rftu_receiver(void)
 											printf("[RECEIVER] Sending COMPLETED cmd\n");
 
 											// send complete command
-											rftu_pck_send_cmd.cmd  = RFTU_CMD_COMPLETED;
-											rftu_pck_send_cmd.id   = rftu_id;
-											rftu_pck_send_cmd.seq  = Rn;
-											rftu_pck_send_cmd.size = (received_bytes * 100 / file_info.filesize);
+											rftu_pkt_send_cmd.cmd  = RFTU_CMD_COMPLETED;
+											rftu_pkt_send_cmd.id   = rftu_id;
+											rftu_pkt_send_cmd.seq  = Rn;
+											rftu_pkt_send_cmd.size = (received_bytes * 100 / file_info.filesize);
 											
-											sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 ,
+											sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 ,
 				    								 (struct sockaddr *) &sender_soc, socklen);
 
 											// close file
@@ -169,12 +170,12 @@ unsigned char rftu_receiver(void)
 							}
 							else
 							{
-							printf("[RECEIVER] Unknown ID: %i\n", rftu_pck_rcv.id);
+							printf("[RECEIVER] Unknown ID: %i\n", rftu_pkt_rcv.id);
 							}
 						}
 						break;
                     default: 
-                        printf("Unknown command %u\n", rftu_pck_rcv.cmd);
+                        printf("Unknown command %u\n", rftu_pkt_rcv.cmd);
                         break;
 				}
 				    
