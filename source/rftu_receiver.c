@@ -11,7 +11,7 @@
 
 // Variables
 
-unsigned char path[250] = "~/Downloads/";
+unsigned char path[255] = "home";
 
 struct sockaddr_in sender_soc, receiver_soc;
 int sd, fd; // socket descriptor and file descriptor
@@ -91,7 +91,9 @@ unsigned char rftu_receiver(void)
 				    	file_info = *((struct file_info_t *) &rftu_pck_rcv.data);
 				    	printf("File info:\n File name : %s, Filesize: %ld bytes \n", file_info.filename, file_info.filesize);
 				    	// Create the file to save
-				    	strcat(path, file_info.filename);
+				    	strcat(path, getlogin());
+						strcat(path, "/Desktop/");
+						strcat(path, file_info.filename);
 				    	fd = open(path,  O_CREAT | O_WRONLY,  0666);
 				    	if (fd < 0)
 				    	{
