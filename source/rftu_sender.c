@@ -112,9 +112,9 @@ unsigned char rftu_sender()
         else if (select_result == 0) // Time out
         {
             error_cnt++;
-            if (error_cnt == RFTU_MAX_RETRY+1)
+            if (error_cnt == RFTU_MAX_RETRY)
             {
-                printf("[SENDER] Over retry limit\n");
+                printf("[SENDER] Over the limit of sending times\n");
                 shutdown(socket_fd, 2);
                 return RFTU_RET_ERROR;
             }
@@ -191,19 +191,15 @@ unsigned char rftu_sender()
                     }
                     break;
 
-                /* case RFTU_CMD_ERROR: */
-                default:    // RFTU_CMD_ERROR and others
-                    if (error_cnt == RFTU_MAX_RETRY+1)
+                default:    // others
+                    if (error_cnt == RFTU_MAX_RETRY)
                     {
-                        printf("[SENDER] Over retry limit\n");
+                        printf("[SENDER] Over the limit of sending times\n");
                         close(file_fd);
                         shutdown(socket_fd, 2);
                         return RFTU_RET_ERROR;
                     }
                     break;
-
-                /* default: */
-                /*     break; */
             }
         }
     }
