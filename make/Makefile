@@ -5,7 +5,7 @@ INCLUDE_DIR = $(WORK_DIR)/include
 
 all: rftu
 
-rftu: rftu.o rftu_receiver.o rftu_sender.o
+rftu: rftu.o rftu_sender.o rftu_receiver.o
 	$(CC) -I $(INCLUDE_DIR) -o $@ $^
 
 %.o: $(SRC_DIR)/%.c $(INCLUDE_DIR)/rftu.h
