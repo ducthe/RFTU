@@ -34,7 +34,7 @@ socklen_t socklen;
 
 unsigned char rftu_receiver(void)
 {
-
+    printf("%s\n\n", "Initialize receiver");
 	sd = socket(AF_INET, SOCK_DGRAM, 0); // socket DGRAM
 	if(sd == -1)
 	{

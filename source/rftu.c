@@ -23,7 +23,7 @@ char                 rftu_ip[20];
 static int option;
 int main(int argc, char *argv[])
 {
-    while(option = getopt(argc, argv, "f:t:sv") != -1)
+    while((option = getopt(argc, argv, "f:t:sv")) != -1)
     {
         switch(option)
         {
@@ -71,10 +71,7 @@ int main(int argc, char *argv[])
      */
     static struct option long_options[] =
     {
-        /* These options don’t set a flag.
-         We distinguish them by their indices. */
-        {"help",     no_argument,       0, 'h'},
-        {0, 0, 0, 0}
+        {"help",     no_argument,       0, 'h'}
     };
   /* getopt_long stores the option index here. */
     int option_index = 0;
