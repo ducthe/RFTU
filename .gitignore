@@ -1,0 +1,9 @@
+# Object file and executable file
+*.o
+rftu
+
+# Swap file
+*.swp
+
+# File being edited
+*~
