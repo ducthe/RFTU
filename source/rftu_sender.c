@@ -4,7 +4,7 @@
  * Date: 06-Sep-2016
  */
 /*************************************************************************/
-#include "../include/rftu.h"
+#include "rftu.h"
 
 unsigned char rftu_sender()
 {
@@ -38,6 +38,7 @@ unsigned char rftu_sender()
     strcpy(temp, rftu_filename);
     strcpy(file_info.filename, get_filename(temp));
     free(temp);
+    printf("Filename is %s\n", file_info.filename);
     file_info.filesize = get_filesize(rftu_filename);
     rftu_filesize = file_info.filesize;
 
@@ -64,11 +65,11 @@ unsigned char rftu_sender()
     N = (N > RFTU_WINDOW_SIZE)? RFTU_WINDOW_SIZE : N;
 
     // Initialize sending window
-    windows = (struct windows_t*)malloc(sizeof(struct windows_t));
+    windows = (struct windows_t *) malloc(N * sizeof(struct windows_t));
     for (i = 0; i < N; i++)
     {
-        windows->sent = NO;
-        windows->ack = NO;
+        windows[i].sent = NO;
+        windows[i].ack = NO;
     }
 
     /*---START---*/
