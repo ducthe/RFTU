@@ -85,24 +85,24 @@ unsigned char rftu_receiver(void)
 				switch(rftu_pck_rcv.cmd)
 				{
 					case (RFTU_CMD_INIT):
-					if(receiving == NO)
-				    {
-				    	// Open file
-				    	file_info = *((struct file_info_t *) &rftu_pck_rcv.data);
-				    	printf("File info:\n File name : %s, Filesize: %ld bytes \n", file_info.filename, file_info.filesize);
-				    	// Create the file to save
-				    	strcat(path, getlogin());
-						strcat(path, "/Desktop/");
-						strcat(path, file_info.filename);
-				    	fd = open(path,  O_CREAT | O_WRONLY,  0666);
-				    	printf("Saving file to : %s\n",path );
-				    	if (fd < 0)
+						if(receiving == NO)
 				    	{
-				    		printf("There is nospace, cannot create the file\n");
-				    		// Send command NOSPACE to sender
-				    		rftu_pck_send_cmd.cmd = RFTU_CMD_NOSPACE;
-				    		sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 ,
-				    				 (struct sockaddr *) &sender_soc, socklen);
+					   	 	// Open file
+					    	file_info = *((struct file_info_t *) &rftu_pck_rcv.data);
+					    	printf("File info:\n File name : %s, Filesize: %ld bytes \n", file_info.filename, file_info.filesize);
+					    	// Create the file to save
+					    	strcat(path, getlogin());
+							strcat(path, "/Desktop/");
+							strcat(path, file_info.filename);
+					    	fd = open(path,  O_CREAT | O_WRONLY,  0666);
+					    	printf("Saving file to : %s\n",path );
+					    	if (fd < 0)
+					    	{
+					    		printf("There is nospace, cannot create the file\n");
+					    		// Send command NOSPACE to sender
+					    		rftu_pck_send_cmd.cmd = RFTU_CMD_NOSPACE;
+					    		sendto(sd, &rftu_pck_send_cmd, sizeof(rftu_pck_send_cmd) , 0 ,
+					    				 (struct sockaddr *) &sender_soc, socklen);
 
 				    	}
 				    	else
@@ -167,17 +167,17 @@ unsigned char rftu_receiver(void)
 
 										error_cnt = 0;
 									}
-								}
-								else
-									{
-										printf("[RECEIVER] Unknown ID: %i\n", rftu_pck_rcv.id);
-									}
+							}
+							else
+							{
+							printf("[RECEIVER] Unknown ID: %i\n", rftu_pck_rcv.id);
+							}
 						}
+						break;
                     default: 
                         printf("Unknown command %u\n", rftu_pck_rcv.cmd);
                         break;
 				}
-                break;
 				    
 		}
 
