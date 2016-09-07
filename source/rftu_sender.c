@@ -269,19 +269,19 @@ void send_packages(struct windows_t *windows, unsigned char N, int socket_fd, st
             {
                 printf("[SENDER] Send DATA sequence number: %u\n", windows[pos_check].package.seq);
             }
-
-            if(rand() % 4 == 0)
+#ifdef DROPPER
+            if(rand() % 12 == 0)
             {
                 printf("[SENDER] Dropped packet sequence number: %u\n", windows[pos_check].package.seq);
                 windows[pos_check].sent = YES;
+                continue;
             }
-            else
-            {
-                sendto(socket_fd, &windows[pos_check].package, sizeof(struct rftu_package_data_t), 0, (struct sockaddr *) si_other, (socklen_t) sizeof(*si_other));
-                windows[pos_check].sent = YES;
-                pos_check++;
-            }
+#endif
+
+            sendto(socket_fd, &windows[pos_check].package, sizeof(struct rftu_package_data_t), 0, (struct sockaddr *) si_other, (socklen_t) sizeof(*si_other));
+            windows[pos_check].sent = YES;
+
         }
-        /* pos_check = pos_check % 8;  #<{(| window size max = 8|)}># */
+        pos_check++;
     }
 }
