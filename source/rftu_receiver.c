@@ -52,6 +52,7 @@ unsigned char rftu_receiver(void)
 	if ( bind(sd, (struct sockaddr *)&receiver_soc, sizeof(receiver_soc)) != 0 ) // Create a socket for receiver
 	{
     	printf("Not binded\n");
+    	return RFTU_RET_ERROR;
 	}
 
 
