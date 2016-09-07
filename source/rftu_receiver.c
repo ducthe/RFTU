@@ -20,14 +20,15 @@ int sd, fd; // socket descriptor and file descriptor
 struct file_info_t file_info; // File transfered
 struct rftu_package_cmd_t  rftu_pck_send_cmd; 
 struct rftu_package_data_t rftu_pck_rcv; 
-struct timval timeout; // set time out
+struct timeval timeout; // set time out
 char receiving = NO;
 fd_set set;
 int waiting;
 unsigned char error_cnt = 0;
 unsigned int Rn;
-int rftu_id;
+unsigned short rftu_id;
 unsigned long int received_bytes;
+unsigned long int   rftu_filesize;
 
 
 unsigned char rftu_receiver(void)
@@ -64,17 +65,17 @@ unsigned char rftu_receiver(void)
 		switch(waiting)
 		{
 			case 0: // time out
-			if(receiving ==  YES)
-			{
-				error_cnt++;
-				break;
-			}
+    			if(receiving ==  YES)
+    			{
+    				error_cnt++;
+    			}
+                break;
 			case -1: // have an error
 				printf("Error when waiting for package \n");
 				break;
 			default: // Read new packet
-				recvfrom(sd, &rftu_pck_rcv, sizeof(rftu_pck_rcv), 0, 
-							(struct sockaddr *)&sender_soc, sizeof(sender_soc));
+				recvfrom(sd, &rftu_pck_rcv, sizeof(rftu_pck_rcv), 0, \
+                    (struct sockaddr *)&sender_soc, sizeof(sender_soc));
 				// check the commanders
 				switch(rftu_pck_rcv.cmd)
 				{
@@ -87,7 +88,7 @@ unsigned char rftu_receiver(void)
 				    	// Create the file to save
 				    	strcat(path, file_info.filename);
 				    	fd = open(path,  O_CREAT | O_WRONLY,  0666);
-				    	if (file_fd < 0)
+				    	if (fd < 0)
 				    	{
 				    		printf("There is nospace, cannot create the file\n");
 				    		// Send command NOSPACE to sender
@@ -163,14 +164,14 @@ unsigned char rftu_receiver(void)
 									{
 										printf("[RECEIVER] Unknown ID: %i\n", rftu_pck_rcv.id);
 									}
-								}
-
-				    		}
-				    	break;
-				    default: 
-						printf("Unknown command %u\n", rftu_pck_rcv.cmd);
-				    	break;
+						}
+                    default: 
+                        printf("Unknown command %u\n", rftu_pck_rcv.cmd);
+                        break;
 				}
+                break;
+				    
+		}
 
 		if (receiving == YES)
 		{
@@ -190,5 +191,5 @@ unsigned char rftu_receiver(void)
 
 
 	close(sd);
-	return RFTU_RETURN_OK;
+	return RFTU_RET_OK;
 }
