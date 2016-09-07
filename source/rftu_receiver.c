@@ -95,6 +95,7 @@ unsigned char rftu_receiver(void)
 						strcat(path, "/Desktop/");
 						strcat(path, file_info.filename);
 				    	fd = open(path,  O_CREAT | O_WRONLY,  0666);
+				    	printf("Saving file to : %s\n",path );
 				    	if (fd < 0)
 				    	{
 				    		printf("There is nospace, cannot create the file\n");
