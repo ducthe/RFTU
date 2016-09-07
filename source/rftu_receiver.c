@@ -29,7 +29,7 @@ unsigned int Rn;
 unsigned short rftu_id;
 unsigned long int received_bytes;
 socklen_t socklen;
-
+unsigned long int  	rftu_filesize;
 
 unsigned char rftu_receiver(void)
 {
