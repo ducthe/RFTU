@@ -39,7 +39,7 @@ unsigned char rftu_receiver(void)
 	if(sd == -1)
 	{
 		printf("Error to create socket\n");
-		return -1;
+		return RFTU_RET_ERROR;
 	}
 // init socket structure
 	memset((char *) &receiver_soc, 0, sizeof(receiver_soc));
