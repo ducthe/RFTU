@@ -120,12 +120,11 @@ unsigned char rftu_receiver(void)
 				    		received_bytes = 0;
 				    		Rn = 0;
 
+					    	}
+					    
 
-				    	}
-				    
-
-				    }
-				    break;
+					    }
+					    break;
 				    case (RFTU_CMD_DATA):
 				    	if (receiving == YES)
 				    	{
