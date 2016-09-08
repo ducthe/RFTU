@@ -106,6 +106,7 @@ unsigned char rftu_sender()
         if (select_result == -1) // Error
         {
             printf("[SENDER] Error while waiting for packages\n");
+            free(windows);
             close(socket_fd);
             return RFTU_RET_ERROR;
         }
@@ -115,6 +116,7 @@ unsigned char rftu_sender()
             if (error_cnt == RFTU_MAX_RETRY)
             {
                 printf("[SENDER] Over the limit of sending times\n");
+                free(windows);
                 close(socket_fd);
                 return RFTU_RET_ERROR;
             }
@@ -137,6 +139,7 @@ unsigned char rftu_sender()
                         if((file_fd = open(rftu_filename, O_RDONLY)) == -1)
                         {
                             printf("[SENDER] Openning file fails\n");
+                            free(windows);
                             close(socket_fd);
                             return RFTU_RET_ERROR;
                         }
@@ -178,6 +181,7 @@ unsigned char rftu_sender()
                     }
                     else
                     {
+                        free(windows);
                         return RFTU_RET_ERROR;
                     }
 
@@ -185,6 +189,7 @@ unsigned char rftu_sender()
                     printf("[SENDER] File transfer completed.\n");
                     if (sending == YES)
                     {
+                        free(windows);
                         close(file_fd);
                         close(socket_fd);
                         return RFTU_RET_OK;
@@ -195,6 +200,7 @@ unsigned char rftu_sender()
                     if (error_cnt == RFTU_MAX_RETRY)
                     {
                         printf("[SENDER] Over the limit of sending times\n");
+                        free(windows);
                         close(file_fd);
                         close(socket_fd);
                         return RFTU_RET_ERROR;
