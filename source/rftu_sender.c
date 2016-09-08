@@ -106,7 +106,7 @@ unsigned char rftu_sender()
         if (select_result == -1) // Error
         {
             printf("[SENDER] Error while waiting for packages\n");
-            shutdown(socket_fd, 2);
+            close(socket_fd);
             return RFTU_RET_ERROR;
         }
         else if (select_result == 0) // Time out
@@ -115,7 +115,7 @@ unsigned char rftu_sender()
             if (error_cnt == RFTU_MAX_RETRY)
             {
                 printf("[SENDER] Over the limit of sending times\n");
-                shutdown(socket_fd, 2);
+                close(socket_fd);
                 return RFTU_RET_ERROR;
             }
             if (sending == YES)
@@ -137,7 +137,7 @@ unsigned char rftu_sender()
                         if((file_fd = open(rftu_filename, O_RDONLY)) == -1)
                         {
                             printf("[SENDER] Openning file fails\n");
-                            shutdown(socket_fd, 2);
+                            close(socket_fd);
                             return RFTU_RET_ERROR;
                         }
                         rftu_id = rftu_pkg_receive.id;  // Get transmission ID
@@ -186,7 +186,7 @@ unsigned char rftu_sender()
                     if (sending == YES)
                     {
                         close(file_fd);
-                        shutdown(socket_fd, 2);
+                        close(socket_fd);
                         return RFTU_RET_OK;
                     }
                     break;
@@ -196,7 +196,7 @@ unsigned char rftu_sender()
                     {
                         printf("[SENDER] Over the limit of sending times\n");
                         close(file_fd);
-                        shutdown(socket_fd, 2);
+                        close(socket_fd);
                         return RFTU_RET_ERROR;
                     }
                     break;
