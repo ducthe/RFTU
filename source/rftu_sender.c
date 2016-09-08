@@ -49,7 +49,7 @@ unsigned char rftu_sender()
     receiver_addr.sin_port = htons(RFTU_PORT);
     if (inet_aton(rftu_ip, &receiver_addr.sin_addr) == 0)
     {
-        printf("[SENDER] The address is invalid\n");
+        printf("[SENDER] ERROR: The address is invalid\n");
         return RFTU_RET_ERROR;
     }
     memset(receiver_addr.sin_zero, '\0', sizeof(receiver_addr.sin_zero));
@@ -58,7 +58,7 @@ unsigned char rftu_sender()
     // Socket creation
     if ((socket_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     {
-        printf("[SENDER] Socket creation fails\n");
+        printf("[SENDER] ERROR: Socket creation fails\n");
         return RFTU_RET_ERROR;
     }
 
@@ -105,7 +105,7 @@ unsigned char rftu_sender()
         select_result = select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
         if (select_result == -1) // Error
         {
-            printf("[SENDER] Error while waiting for packages\n");
+            printf("[SENDER] ERROR: Error while waiting for packages\n");
             free(windows);
             close(socket_fd);
             return RFTU_RET_ERROR;
@@ -115,7 +115,7 @@ unsigned char rftu_sender()
             error_cnt++;
             if (error_cnt == RFTU_MAX_RETRY)
             {
-                printf("[SENDER] Over the limit of sending times\n");
+                printf("[SENDER] ERROR: Over the limit of sending times\n");
                 free(windows);
                 close(socket_fd);
                 return RFTU_RET_ERROR;
@@ -138,7 +138,7 @@ unsigned char rftu_sender()
                     {
                         if((file_fd = open(rftu_filename, O_RDONLY)) == -1)
                         {
-                            printf("[SENDER] Openning file fails\n");
+                            printf("[SENDER] ERROR: Openning file fails\n");
                             free(windows);
                             close(socket_fd);
                             return RFTU_RET_ERROR;
@@ -174,7 +174,7 @@ unsigned char rftu_sender()
                     break;
 
                 case RFTU_CMD_NOSPACE:
-                    printf("[SENDER] No available space at receiver machine\n");
+                    printf("[SENDER] ERROR: No available space at receiver machine\n");
                     if (sending == NO)
                     {
                         break;
@@ -199,7 +199,7 @@ unsigned char rftu_sender()
                 default:    // others
                     if (error_cnt == RFTU_MAX_RETRY)
                     {
-                        printf("[SENDER] Over the limit of sending times\n");
+                        printf("[SENDER] ERROR: Over the limit of sending times\n");
                         free(windows);
                         close(file_fd);
                         close(socket_fd);
