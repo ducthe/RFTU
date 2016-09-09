@@ -1,0 +1,25 @@
+/**
+ * Author: Richard
+ * Date: 09/09/2016
+ * version 1
+ * Here are assignment to mentees: Richard, Peter, Kevin & ISAAC
+ */
+
+/**
+ * [Version_1 description]
+ * Completing period: 08/31/2016 --> 09/08/2016
+ */
+----- Richard & Peter: Implementing Receiver side (writing rftu_receiver.c, rftu.c and Makefile)
+----- Kevin & Isaac: Implementing Sender side (writing rftu_sender.c and rftu.h)
+
+/**
+* [Version_2 description] 
++ Completing period: 09/09/2016 --> 09/13/2016
+* Adding some features to RFTU
+ */
+
+----- Richard & Peter: 
+        + Modifying rftu_receiver.c: Using rcv_buffer to store received packets 
+        + Modifying rftu_sender.c: Go-back-N algorithm is replaced by selective repeat algorithm 
+----- Kevin & Isaac:
+        + Modifying rftu_sender.c: Using multi-thread to send packets.
