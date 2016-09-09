@@ -2,7 +2,7 @@
  * Author: Richard
  * Date: 09/09/2016
  * version 1
- * Here are assignment to mentees: Richard, Peter, Kevin & ISAAC
+ * Here are assignments to mentees: Richard, Peter, Kevin & ISAAC
  */
 
 /**
