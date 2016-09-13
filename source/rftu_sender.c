@@ -6,7 +6,7 @@
 /*************************************************************************/
 #include "rftu.h"
 
-unsigned char rftu_sender()
+void* SENDER_Start(void *arg)
 {
     // Sender variables
     struct file_info_t file_info;  // file info to be sent to receiver in INIT message
@@ -36,6 +36,7 @@ unsigned char rftu_sender()
     socklen_t socklen = 0;
     char* temp;
 
+    struct senderParam stSenderParam = *(struct senderParam *)arg;
 
     // File info setup
     temp = (char*)malloc(sizeof(rftu_filename));
@@ -50,11 +51,11 @@ unsigned char rftu_sender()
 
     // Configure settings of the receiver address struct
     receiver_addr.sin_family = AF_INET;
-    receiver_addr.sin_port = htons(RFTU_PORT);
+    receiver_addr.sin_port = htons(stSenderParam.portNumber);
     if (inet_aton(rftu_ip, &receiver_addr.sin_addr) == 0)
     {
         printf("[SENDER] ERROR: The address is invalid\n");
-        return RFTU_RET_ERROR;
+        return;
     }
     memset(receiver_addr.sin_zero, '\0', sizeof(receiver_addr.sin_zero));
     socklen = sizeof(receiver_addr);
@@ -63,7 +64,7 @@ unsigned char rftu_sender()
     if ((socket_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     {
         printf("[SENDER] ERROR: Socket creation fails\n");
-        return RFTU_RET_ERROR;
+        return;
     }
 
     // Specify value of window size N
@@ -107,7 +108,7 @@ unsigned char rftu_sender()
             printf("[SENDER] ERROR: Error while waiting for packages\n");
             free(windows);
             close(socket_fd);
-            return RFTU_RET_ERROR;
+            return;
         }
         else if (select_result == 0) // Time out
         {
@@ -117,7 +118,7 @@ unsigned char rftu_sender()
                 printf("[SENDER] ERROR: Over the limit of sending times\n");
                 free(windows);
                 close(socket_fd);
-                return RFTU_RET_ERROR;
+                return;
             }
             if (sending == YES)
             {
@@ -140,7 +141,7 @@ unsigned char rftu_sender()
                             printf("[SENDER] ERROR: Openning file fails\n");
                             free(windows);
                             close(socket_fd);
-                            return RFTU_RET_ERROR;
+                            return;
                         }
                         rftu_id = rftu_pkg_receive.id;  // Get transmission ID
                         Sb = -1;         // Set sequence base to -1
@@ -165,7 +166,6 @@ unsigned char rftu_sender()
                         // Set ACK flag for every packet received ACK
                         SENDER_SetACKflag(windows, N, rftu_pkg_receive.seq);
                         // Check seq = Sb in windows
-                        
                         while((index_finded = SENDER_FindPacketseq(windows, N, Sb + 1)) != RFTU_RET_ERROR)
                         {
                             Sb++;
@@ -185,7 +185,7 @@ unsigned char rftu_sender()
                     else
                     {
                         free(windows);
-                        return RFTU_RET_ERROR;
+                        return;
                     }
 
                 case RFTU_CMD_COMPLETED:
@@ -196,7 +196,7 @@ unsigned char rftu_sender()
                         free(windows);
                         close(file_fd);
                         close(socket_fd);
-                        return RFTU_RET_OK;
+                        return NULL;
                     }
                     break;
 
@@ -207,7 +207,7 @@ unsigned char rftu_sender()
                         free(windows);
                         close(file_fd);
                         close(socket_fd);
-                        return RFTU_RET_ERROR;
+                        return;
                     }
                     break;
             }

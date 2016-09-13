@@ -23,6 +23,10 @@ char    rftu_ip[20];
 static int option;
 int main(int argc, char *argv[])
 {
+    pthread_t pth;
+    struct senderParam stSenderParam;
+    stSenderParam.portNumber = RFTU_PORT;
+
     while((option = getopt(argc, argv, "f:t:svh")) != -1)
     {
         switch(option)
@@ -72,12 +76,20 @@ int main(int argc, char *argv[])
 
     if((flag_file_ok == YES) && (flag_ip_ok == YES))
     {
-        rftu_sender();
+        {
+            int m;
+            m = pthread_create(&pth, NULL, &SENDER_Start, (void *)&stSenderParam);
+            if (!m)
+                printf("Thread created.\n");
+            else
+                printf("Thread creation failed.\n");
+            pthread_join(pth, NULL);
+        }
     }
 
     if(flag_server == YES)
     {
-        rftu_receiver();
+        RECEIVER_Start();
     }
     return RFTU_RET_OK;
 }

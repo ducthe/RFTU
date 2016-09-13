@@ -24,6 +24,7 @@
 #include <sys/time.h>
 #include <libgen.h>
 #include <getopt.h>
+#include <pthread.h>
 
 /*-------------------*/
 /*------MACROS-------*/
@@ -91,6 +92,10 @@ struct windows_t {
 	struct rftu_packet_data_t package;
 };
 
+struct senderParam {
+    int portNumber;
+};
+
 // RFTU Global Variables
 extern char 				rftu_filename[256];
 extern unsigned long int  	rftu_filesize;
@@ -107,7 +112,7 @@ unsigned char 	MAIN_check_ip(char *ip);
 unsigned char 	MAIN_check_file_exist(char *path);
 
 // Sender functions - in rftu_sender.c
-unsigned char 		rftu_sender(void);
+void* SENDER_Start(void* arg);
 char* SENDER_Get_Filename(char *path);
 unsigned long int SENDER_Get_Filesize(char *path);
 void SENDER_AddAllPackages(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq);
@@ -117,7 +122,7 @@ void SENDER_SetACKflag(struct windows_t *windows, unsigned char N, unsigned int 
 int SENDER_FindPacketseq(struct windows_t *windows, unsigned char N, unsigned int seq);
 
 // Receiver functions - in rftu_receiver.c
-unsigned char 	rftu_receiver(void);
+unsigned char 	RECEIVER_Start(void);
 int RECEIVER_isSeqExistInBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int BUFFER_SIZE, unsigned int seq);
 void RECEIVER_InsertPacket(struct rftu_packet_data_t *rcv_buffer, struct rftu_packet_data_t rftu_pkt_rcv);
 void RECEIVER_RemovePacket(struct rftu_packet_data_t *rcv_buffer, int BUFFER_SIZE, struct rftu_packet_data_t rftu_pkt_rcv);
