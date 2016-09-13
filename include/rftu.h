@@ -6,7 +6,7 @@
 /*************************************************************************/
 #ifndef __RFTU_H__
 #define __RFTU_H__
-#define DROPPER
+// #define DROPPER
 
 /*-------------------*/
 /*-----LIBRARIES-----*/
@@ -51,10 +51,21 @@
 
 // RFTU Default Settings
 #define RFTU_FRAME_SIZE     1024
-#define RFTU_PORT 			8888
 #define RFTU_TIMEOUT		3
+#define RFTU_WELCOME_PORT   8880
 #define RFTU_MAX_RETRY		10
 #define RFTU_WINDOW_SIZE	8
+
+// #define THREAD_NUMBER       2
+#define RFTU_PORT           8888
+// #define RFTU_PORT_1         8881
+// #define RFTU_PORT_2         8882
+// #define RFTU_PORT_3         8883
+// #define RFTU_PORT_4         8884
+// #define RFTU_PORT_5         8885
+// #define RFTU_PORT_6         8886
+// #define RFTU_PORT_7         8887
+// #define RFTU_PORT_8		   8888
 
 // RFTU Control Flags
 extern unsigned char flag_server;
@@ -92,9 +103,22 @@ struct windows_t {
 	struct rftu_packet_data_t package;
 };
 
-struct senderParam {
-    int portNumber;
+struct g_stSenderParam {
+    int nPortNumber;
+    unsigned int unWindowSize;
+    // int nFileSize;
 };
+
+struct g_stReceiverParam {
+    int nPortNumber;
+    int fd;
+    int nFileSize;
+};
+
+// struct g_stPortInfo {
+//     unsigned char ucNumberOfPort;
+//     int nPortNumber[THREAD_NUMBER];
+// };
 
 // RFTU Global Variables
 extern char 				rftu_filename[256];
@@ -111,18 +135,24 @@ void 			MAIN_disp_help(void);
 unsigned char 	MAIN_check_ip(char *ip);
 unsigned char 	MAIN_check_file_exist(char *path);
 
-// Sender functions - in rftu_sender.c
-void* SENDER_Start(void* arg);
+// Sender Main functions - in mainSender.c
+unsigned char SENDER_Main(void);
 char* SENDER_Get_Filename(char *path);
 unsigned long int SENDER_Get_Filesize(char *path);
+
+// Sender functions - in rftu_sender.c
+void* SENDER_Start(void* arg);
 void SENDER_AddAllPackages(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq);
 void SENDER_Add_Package(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq, int index_finded);
 void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all);
 void SENDER_SetACKflag(struct windows_t *windows, unsigned char N, unsigned int seq);
 int SENDER_FindPacketseq(struct windows_t *windows, unsigned char N, unsigned int seq);
 
+// Receiver Main functions - in mainReceiver.c
+unsigned char RECEIVER_Main(void);
+
 // Receiver functions - in rftu_receiver.c
-unsigned char 	RECEIVER_Start(void);
+void* RECEIVER_Start(void* arg);
 int RECEIVER_isSeqExistInBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int BUFFER_SIZE, unsigned int seq);
 void RECEIVER_InsertPacket(struct rftu_packet_data_t *rcv_buffer, struct rftu_packet_data_t rftu_pkt_rcv);
 void RECEIVER_RemovePacket(struct rftu_packet_data_t *rcv_buffer, int BUFFER_SIZE, struct rftu_packet_data_t rftu_pkt_rcv);

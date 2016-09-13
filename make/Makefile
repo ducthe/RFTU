@@ -6,7 +6,7 @@ P_THREAD = -pthread
 
 all: rftu
 
-rftu: rftu.o rftu_sender.o rftu_receiver.o
+rftu: rftu.o mainSender.o rftu_sender.o mainReceiver.o rftu_receiver.o
 	$(CC) $(P_THREAD) -I $(INCLUDE_DIR) -o $@ $^
 
 %.o: $(SRC_DIR)/%.c $(INCLUDE_DIR)/rftu.h

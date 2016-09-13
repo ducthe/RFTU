@@ -1,6 +1,7 @@
 /*
  * Filename: rftu_sender.c
  * Author: OCTO team (Issac, Kevin)
+ * Contributor: Richard
  * Date: 06-Sep-2016
  */
 /*************************************************************************/
@@ -10,11 +11,8 @@ unsigned int number_pkt_loss = 0;
 
 void* SENDER_Start(void *arg)
 {
-    // Sender variables
-    struct file_info_t file_info;  // file info to be sent to receiver in INIT message
     struct rftu_packet_data_t rftu_pkg_send;    // package to be sent
     struct rftu_packet_data_t rftu_pkg_receive; // used to store received package
-    //Nen sua rftu_pkg_receive thanh struct rftu_packet_cmd_t rftu_pkt_rcv_cmd
 
     int socket_fd; // socket file descriptor
     struct sockaddr_in receiver_addr; // receiver address
@@ -24,36 +22,22 @@ void* SENDER_Start(void *arg)
     unsigned char sending   = NO;
     int index_finded;
 
-
     fd_set fds; //set of file descriptors to be monitored by select()
     int select_result;
     struct timeval timeout;
 
     unsigned int Sb = 0; // sequence base
     unsigned int N = 0;  // size of window
-    
+
     struct windows_t *windows = NULL;
-    int i;
     int file_fd;
     socklen_t socklen = 0;
-    char* temp;
 
-    struct senderParam stSenderParam = *(struct senderParam *)arg;
-
-    // File info setup
-    temp = (char*)malloc(sizeof(rftu_filename));
-    strcpy(temp, rftu_filename);
-    strcpy(file_info.filename, SENDER_Get_Filename(temp));
-    free(temp);
-    file_info.filesize = SENDER_Get_Filesize(rftu_filename);
-    rftu_filesize = file_info.filesize;
-
-    printf("[SENDER] Filename is %s\n", file_info.filename);
-    printf("[SENDER] Filesize is %lu bytes\n", rftu_filesize);
+    struct g_stSenderParam stSenderParam = *(struct g_stSenderParam *)arg;
 
     // Configure settings of the receiver address struct
     receiver_addr.sin_family = AF_INET;
-    receiver_addr.sin_port = htons(stSenderParam.portNumber);
+    receiver_addr.sin_port = htons(stSenderParam.nPortNumber);
     if (inet_aton(rftu_ip, &receiver_addr.sin_addr) == 0)
     {
         printf("[SENDER] ERROR: The address is invalid\n");
@@ -71,7 +55,7 @@ void* SENDER_Start(void *arg)
 
     // Specify value of window size N
     N = (rftu_filesize/RFTU_FRAME_SIZE) + 1;
-    N = (N > RFTU_WINDOW_SIZE)? RFTU_WINDOW_SIZE : N;
+    N = (N > stSenderParam.unWindowSize)? stSenderParam.unWindowSize : N;
 
     // Initialize sending window
     windows = (struct windows_t *) malloc(N * sizeof(struct windows_t));
@@ -83,18 +67,22 @@ void* SENDER_Start(void *arg)
     {
         if (sending == NO)
         {
-            // Create INIT packet
-            rftu_pkg_send.cmd = RFTU_CMD_INIT;
-            rftu_pkg_send.id = 0;
-            rftu_pkg_send.seq = 0;
-            rftu_pkg_send.size = sizeof(file_info);
-            memcpy(rftu_pkg_send.data, &file_info, sizeof(file_info));
+            if((file_fd = open(rftu_filename, O_RDONLY)) == -1)
+            {
+                printf("[SENDER] ERROR: Openning file fails\n");
+                free(windows);
+                close(socket_fd);
+                return;
+            }
+            Sb = -1;         // Set sequence base to -1
+            Sn = 0;         // Set sequence number to 0
+            sending = YES;  // let sending flag be YES
 
-            // Sent the INIT packet
-            printf("[SENDER] Sending INIT message\n");
-            sendto(socket_fd, &rftu_pkg_send, sizeof(rftu_pkg_send), 0, (struct sockaddr*)&receiver_addr, socklen);
+            // Sending the first window of data
+            SENDER_AddAllPackages(windows, N, file_fd, &Sn);
+            printf("[SENDER] Sending first window of data.\n");
+            SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO);
         }
-
         // Initialize timeout
         timeout.tv_sec = RFTU_TIMEOUT;
         timeout.tv_usec = 0;
@@ -134,29 +122,6 @@ void* SENDER_Start(void *arg)
             // Switch the CMD fields in the received msg
             switch(rftu_pkg_receive.cmd)
             {
-                case RFTU_CMD_READY:
-                    printf("[SENDER] READY message received\n");
-                    if (sending == NO)
-                    {
-                        if((file_fd = open(rftu_filename, O_RDONLY)) == -1)
-                        {
-                            printf("[SENDER] ERROR: Openning file fails\n");
-                            free(windows);
-                            close(socket_fd);
-                            return;
-                        }
-                        rftu_id = rftu_pkg_receive.id;  // Get transmission ID
-                        Sb = -1;         // Set sequence base to -1
-                        Sn = 0;         // Set sequence number to 0
-                        sending = YES;  // let sending flag be YES
-
-                        // Sending the first window of data
-                        SENDER_AddAllPackages(windows, N, file_fd, &Sn);
-                        printf("[SENDER] Sending first window of data.\n");
-                        SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO);
-                    }
-                    break;
-
                 case RFTU_CMD_ACK:
                     if (sending == YES)
                     {
@@ -176,18 +141,6 @@ void* SENDER_Start(void *arg)
                         }
                     }
                     break;
-
-                case RFTU_CMD_NOSPACE:
-                    printf("[SENDER] ERROR: No available space at receiver machine\n");
-                    if (sending == NO)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        free(windows);
-                        return;
-                    }
 
                 case RFTU_CMD_COMPLETED:
                     printf("[SENDER] File transfer completed.\n");
@@ -216,21 +169,6 @@ void* SENDER_Start(void *arg)
     }
 }
 
-
-char* SENDER_Get_Filename(char *path)
-{
-    return basename(path);
-}
-
-unsigned long int SENDER_Get_Filesize(char *path)
-{
-    unsigned long int sz;
-    int fd;
-    fd = open(path, O_RDONLY);
-    sz = lseek(fd, (size_t)0, SEEK_END);
-    close(fd);
-    return sz;
-}
 
 // When a packet was sent and sender received ack, sent flag = 1 and ack flag = 1
 // Then this packet will be removed from windows, a new packet will be added to this position.
@@ -294,29 +232,30 @@ void SENDER_AddAllPackages(struct windows_t *windows, unsigned char N, int file_
             (*seq)++;                   /* increase sequence number after add new packet*/
         }
     }
+    printf("[SENDER] All packets are added into sending window.\n");
 }
 
 void SENDER_Add_Package(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq, int index_finded)
 {
-        /* Get size of packet using read() function
-         * It returns the number of data bytes actually read,
-         * which may be less than the number requested.*/
-        int size_of_packet = 0;
+    /* Get size of packet using read() function
+     * It returns the number of data bytes actually read,
+     * which may be less than the number requested.*/
+    int size_of_packet = 0;
 
-        size_of_packet = read(file_fd, windows[index_finded].package.data, RFTU_FRAME_SIZE);
+    size_of_packet = read(file_fd, windows[index_finded].package.data, RFTU_FRAME_SIZE);
 
-        if(size_of_packet > 0)
-        {
-            windows[index_finded].sent = NO;
-            windows[index_finded].ack  = NO;
+    if(size_of_packet > 0)
+    {
+        windows[index_finded].sent = NO;
+        windows[index_finded].ack  = NO;
 
-            windows[index_finded].package.cmd      = RFTU_CMD_DATA;
-            windows[index_finded].package.id       = rftu_id;
-            windows[index_finded].package.seq      = *seq;
-            windows[index_finded].package.size     = size_of_packet;
+        windows[index_finded].package.cmd      = RFTU_CMD_DATA;
+        windows[index_finded].package.id       = rftu_id;
+        windows[index_finded].package.seq      = *seq;
+        windows[index_finded].package.size     = size_of_packet;
 
-            (*seq)++;                   /* increase sequence number after add new packet*/
-        }
+        (*seq)++;                   /* increase sequence number after add new packet*/
+    }
 }
 
 /* SENDER_Send_Packages() function.
