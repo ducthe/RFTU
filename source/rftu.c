@@ -23,12 +23,12 @@ char    rftu_ip[20];
 static int option;
 int main(int argc, char *argv[])
 {
-    while((option = getopt(argc, argv, "f:t:sv")) != -1)
+    while((option = getopt(argc, argv, "f:t:svh")) != -1)
     {
         switch(option)
         {
             case 'f':
-                if(check_file_exist(optarg) == YES)
+                if(MAIN_check_file_exist(optarg) == YES)
                 {
                     flag_file_ok = YES;
                     memset(rftu_filename, '\0', strlen(rftu_filename));
@@ -37,12 +37,12 @@ int main(int argc, char *argv[])
                 else
                 {
                     printf("%s\n", "Error: File doesn't exist!!!!");
-                    disp_help();
+                    MAIN_disp_help();
                     return RFTU_RET_ERROR;
                 }
                 break;
             case 't':
-                if(check_ip(optarg) == YES)
+                if(MAIN_check_ip(optarg) == YES)
                 {
                     flag_ip_ok = YES;
                     memset(rftu_ip, '\0', strlen(rftu_ip));
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
                 else
                 {
                     printf("%s\n", "Error: IP is wrong!!!");
-                    disp_help();
+                    MAIN_disp_help();
                     return RFTU_RET_ERROR;
                 }
                 break;
@@ -61,27 +61,12 @@ int main(int argc, char *argv[])
             case 'v':
                 flag_verbose = YES;
                 break;
+            case 'h':
+                MAIN_disp_help();
+                break;
             default:
-                disp_help();
+                MAIN_disp_help();
                 return RFTU_RET_ERROR;
-        }
-    }
-    /**
-     * if typed --help
-     */
-    static struct option long_options[] =
-    {
-        {"help",     no_argument,       0, 'h'}
-    };
-  /* getopt_long stores the option index here. */
-    int option_index = 0;
-
-    while(option = getopt_long(argc, argv, "h", long_options, &option_index) != -1)
-    {
-        if(option == 'h')
-        {
-            disp_help();
-            return RFTU_RET_OK;
         }
     }
 
@@ -94,14 +79,10 @@ int main(int argc, char *argv[])
     {
         rftu_receiver();
     }
-    // else
-    // {
-    //     disp_help();
-    // }
     return RFTU_RET_OK;
 }
 
-unsigned char check_ip(char *path)
+unsigned char MAIN_check_ip(char *path)
 {
     unsigned int addr[4];
     int i;
@@ -120,7 +101,7 @@ unsigned char check_ip(char *path)
     return YES;
 }
 
-unsigned char check_file_exist(char *path)
+unsigned char MAIN_check_file_exist(char *path)
 {
     FILE *file;
     if(file = fopen(path, "r"));
@@ -131,7 +112,7 @@ unsigned char check_file_exist(char *path)
     return NO;
 }
 
-void disp_help(void)
+void MAIN_disp_help(void)
 {
     printf("\n%s\n", "Here are instructions for you\n\n\n\
             rftu [-f /path/filename -t destination] [-s] [-v]\n\n\

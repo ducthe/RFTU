@@ -12,6 +12,7 @@ unsigned char rftu_sender()
     struct file_info_t file_info;  // file info to be sent to receiver in INIT message
     struct rftu_packet_data_t rftu_pkg_send;    // package to be sent
     struct rftu_packet_data_t rftu_pkg_receive; // used to store received package
+    //Nen sua rftu_pkg_receive thanh struct rftu_packet_cmd_t rftu_pkt_rcv_cmd
 
     int socket_fd; // socket file descriptor
     struct sockaddr_in receiver_addr; // receiver address
@@ -19,6 +20,8 @@ unsigned char rftu_sender()
     unsigned int  Sn        = 0;    // sequence number
     unsigned char error_cnt = 0;
     unsigned char sending   = NO;
+    int index_finded;
+
 
     fd_set fds; //set of file descriptors to be monitored by select()
     int select_result;
@@ -26,6 +29,7 @@ unsigned char rftu_sender()
 
     unsigned int Sb = 0; // sequence base
     unsigned int N = 0;  // size of window
+    unsigned int number_pkt_loss = 0;
     struct windows_t *windows = NULL;
     int i;
     int file_fd;
@@ -36,9 +40,9 @@ unsigned char rftu_sender()
     // File info setup
     temp = (char*)malloc(sizeof(rftu_filename));
     strcpy(temp, rftu_filename);
-    strcpy(file_info.filename, get_filename(temp));
+    strcpy(file_info.filename, SENDER_Get_Filename(temp));
     free(temp);
-    file_info.filesize = get_filesize(rftu_filename);
+    file_info.filesize = SENDER_Get_Filesize(rftu_filename);
     rftu_filesize = file_info.filesize;
 
     printf("[SENDER] Filename is %s\n", file_info.filename);
@@ -68,11 +72,6 @@ unsigned char rftu_sender()
 
     // Initialize sending window
     windows = (struct windows_t *) malloc(N * sizeof(struct windows_t));
-    for (i = 0; i < N; i++)
-    {
-        windows[i].sent = YES;
-        windows[i].ack = YES;
-    }
 
     /*---START---*/
     error_cnt = 0;
@@ -122,7 +121,7 @@ unsigned char rftu_sender()
             }
             if (sending == YES)
             {
-                send_packages(windows, N, socket_fd, &receiver_addr, YES);
+                SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, YES);
             }
         }
         else // received characters from fds
@@ -144,14 +143,15 @@ unsigned char rftu_sender()
                             return RFTU_RET_ERROR;
                         }
                         rftu_id = rftu_pkg_receive.id;  // Get transmission ID
-                        Sb = 0;         // Set sequence base to 0
+                        Sb = -1;         // Set sequence base to -1
                         Sn = 0;         // Set sequence number to 0
                         sending = YES;  // let sending flag be YES
 
-                        // Sending the first portion of data
-                        add_packages(windows, N, file_fd, &Sn);
-                        send_packages(windows, N, socket_fd, &receiver_addr, NO);
-                        printf("[SENDER] Sending first portion of data.\n");
+                        // Sending the first window of data
+                        SENDER_AddAllPackages(windows, N, file_fd, &Sn);
+                        printf("[SENDER] Sending first window of data.\n");
+                        SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO);
+                        // sleep(2);
                     }
                     break;
 
@@ -162,13 +162,16 @@ unsigned char rftu_sender()
                         {
                             printf("[SENDER] ACK sequence number received: %u\n", rftu_pkg_receive.seq);
                         }
-                        if (rftu_pkg_receive.seq > Sb)
+                        // Set ACK flag for every packet received ACK
+                        SENDER_SetACKflag(windows, N, rftu_pkg_receive.seq);
+                        // Check seq = Sb in windows
+                        
+                        while((index_finded = SENDER_FindPacketseq(windows, N, Sb + 1)) != RFTU_RET_ERROR)
                         {
+                            Sb++;
+                            SENDER_Add_Package(windows, N, file_fd, &Sn, index_finded);
+                            SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO);
                             error_cnt = 0;
-                            Sb = rftu_pkg_receive.seq;
-                            remove_package(windows, N, Sb);
-                            add_packages(windows, N, file_fd, &Sn);
-                            send_packages(windows, N, socket_fd, &receiver_addr, NO);
                         }
                     }
                     break;
@@ -187,6 +190,7 @@ unsigned char rftu_sender()
 
                 case RFTU_CMD_COMPLETED:
                     printf("[SENDER] File transfer completed.\n");
+                    printf("%s%d\n", "[SENDER] Total packets loss: ", number_pkt_loss);
                     if (sending == YES)
                     {
                         free(windows);
@@ -212,12 +216,12 @@ unsigned char rftu_sender()
 }
 
 
-char* get_filename(char *path)
+char* SENDER_Get_Filename(char *path)
 {
     return basename(path);
 }
 
-unsigned long int get_filesize(char *path)
+unsigned long int SENDER_Get_Filesize(char *path)
 {
     unsigned long int sz;
     int fd;
@@ -229,52 +233,96 @@ unsigned long int get_filesize(char *path)
 
 // When a packet was sent and sender received ack, sent flag = 1 and ack flag = 1
 // Then this packet will be removed from windows, a new packet will be added to this position.
-void remove_package(struct windows_t *windows, unsigned char N, unsigned int seq)
-{
-    /* find all packets with sequence number lower than received sequence number and mark them all as ACK returned */
-    int i;
-    for(i = 0; i < N; i++)
-    {
-        if (windows[i].package.seq < seq)
-            windows[i].ack = YES;
-    }
-}
+/**
+ * [SENDER_SetACKflag description]
+ * @param windows [description]
+ * @param N       [description]
+ * @param seq     [description]
+ */
 
-void add_packages(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq)
+void SENDER_SetACKflag(struct windows_t *windows, unsigned char N, unsigned int seq)
 {
+    /* find packet with sequence number = received sequence number and mark it as ACK returned */
     int i;
     for(i = 0; i < N; i++)
     {
-        if(windows[i].sent == YES && windows[i].ack == YES)
+        if (windows[i].package.seq == seq)
         {
-            /* Get size of packet using read() function
-             * It returns the number of data bytes actually read,
-             * which may be less than the number requested.*/
-            int size_of_packet = 0;
-
-            size_of_packet = read(file_fd, windows[i].package.data, RFTU_FRAME_SIZE);
-
-            if(size_of_packet > 0)
-            {
-                windows[i].sent = NO;
-                windows[i].ack  = NO;
-
-                windows[i].package.cmd      = RFTU_CMD_DATA;
-                windows[i].package.id       = rftu_id;
-                windows[i].package.seq      = *seq;
-                windows[i].package.size     = size_of_packet;
-
-                (*seq)++;                   /* increase sequence number after add new packet*/
-            }
+            windows[i].ack = YES;
+            return;
         }
     }
 }
 
-/* send_packages() function.
+int SENDER_FindPacketseq(struct windows_t *windows, unsigned char N, unsigned int seq)
+{
+    /* find packet with sequence number = received sequence number and mark it as ACK returned */
+    int i;
+    for(i = 0; i < N; i++)
+    {
+        if ((windows[i].package.seq == seq) && (windows[i].ack == YES))
+        {
+            return i;
+        }
+    }
+    return RFTU_RET_ERROR;
+}
+
+void SENDER_AddAllPackages(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq)
+{
+    int i;
+    for(i = 0; i < N; i++)
+    {
+        /* Get size of packet using read() function
+         * It returns the number of data bytes actually read,
+         * which may be less than the number requested.*/
+        int size_of_packet = 0;
+
+        size_of_packet = read(file_fd, windows[i].package.data, RFTU_FRAME_SIZE);
+
+        if(size_of_packet > 0)
+        {
+            windows[i].sent = NO;
+            windows[i].ack  = NO;
+
+            windows[i].package.cmd      = RFTU_CMD_DATA;
+            windows[i].package.id       = rftu_id;
+            windows[i].package.seq      = *seq;
+            windows[i].package.size     = size_of_packet;
+
+            (*seq)++;                   /* increase sequence number after add new packet*/
+        }
+    }
+}
+
+void SENDER_Add_Package(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq, int index_finded)
+{
+        /* Get size of packet using read() function
+         * It returns the number of data bytes actually read,
+         * which may be less than the number requested.*/
+        int size_of_packet = 0;
+
+        size_of_packet = read(file_fd, windows[index_finded].package.data, RFTU_FRAME_SIZE);
+
+        if(size_of_packet > 0)
+        {
+            windows[index_finded].sent = NO;
+            windows[index_finded].ack  = NO;
+
+            windows[index_finded].package.cmd      = RFTU_CMD_DATA;
+            windows[index_finded].package.id       = rftu_id;
+            windows[index_finded].package.seq      = *seq;
+            windows[index_finded].package.size     = size_of_packet;
+
+            (*seq)++;                   /* increase sequence number after add new packet*/
+        }
+}
+
+/* SENDER_Send_Packages() function.
  * all = NO : only send the packets with windows[i].sent = NO
  * all = YES: send all packets in the windows regardless of the value of windows[i].sent
  */
-void send_packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all)
+void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all)
 {
     int i;
     int pos_check = 0;   /* position check */
@@ -290,14 +338,14 @@ void send_packages(struct windows_t *windows, unsigned char N, int socket_fd, st
             {
                 printf("[SENDER] Send DATA with sequence number: %u\n", windows[pos_check].package.seq);
             }
-#ifdef DROPPER
-            if(rand() % 12 == 0)
-            {
-                printf("[SENDER] Dropped packet with sequence number: %u\n", windows[pos_check].package.seq);
-                windows[pos_check].sent = YES;
-                continue;
-            }
-#endif
+// #ifdef DROPPER
+//             if(rand() % 20 == 0)
+//             {
+//                 printf("[SENDER] Dropped packet with sequence number: %u\n", windows[pos_check].package.seq);
+//                 windows[pos_check].sent = YES;
+//                 continue;
+//             }
+// #endif
             sendto(socket_fd, &windows[pos_check].package, sizeof(struct rftu_packet_data_t), 0, (struct sockaddr *) si_other, (socklen_t) sizeof(*si_other));
             windows[pos_check].sent = YES;
         }

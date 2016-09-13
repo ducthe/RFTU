@@ -6,6 +6,7 @@
 /*************************************************************************/
 #ifndef __RFTU_H__
 #define __RFTU_H__
+#define DROPPER
 
 /*-------------------*/
 /*-----LIBRARIES-----*/
@@ -101,19 +102,27 @@ extern unsigned short 		rftu_id;
 /*-----FUNCTION PROTOTYPES-----*/
 /*-----------------------------*/
 // Global functions
-void 			disp_help(void);
-unsigned char 	check_ip(char *ip);
-unsigned char 	check_file_exist(char *path);
+void 			MAIN_disp_help(void);
+unsigned char 	MAIN_check_ip(char *ip);
+unsigned char 	MAIN_check_file_exist(char *path);
 
 // Sender functions - in rftu_sender.c
 unsigned char 		rftu_sender(void);
-char*				get_filename(char *path);
-unsigned long int  	get_filesize(char *path);
-void 				add_packages(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq);
-void 				remove_package(struct windows_t *windows, unsigned char N, unsigned int seq);
-void 				send_packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all);
+char* SENDER_Get_Filename(char *path);
+unsigned long int SENDER_Get_Filesize(char *path);
+void SENDER_AddAllPackages(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq);
+void SENDER_Add_Package(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq, int index_finded);
+void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all);
+void SENDER_SetACKflag(struct windows_t *windows, unsigned char N, unsigned int seq);
+int SENDER_FindPacketseq(struct windows_t *windows, unsigned char N, unsigned int seq);
 
 // Receiver functions - in rftu_receiver.c
 unsigned char 	rftu_receiver(void);
+int RECEIVER_isSeqExistInBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int BUFFER_SIZE, unsigned int seq);
+void RECEIVER_InsertPacket(struct rftu_packet_data_t *rcv_buffer, struct rftu_packet_data_t rftu_pkt_rcv);
+void RECEIVER_RemovePacket(struct rftu_packet_data_t *rcv_buffer, int BUFFER_SIZE, struct rftu_packet_data_t rftu_pkt_rcv);
+int RECEIVER_IsFullBuffer();
+void RECEIVER_ResetBuffer(struct rftu_packet_data_t *rcv_buffer);
+int RECEIVER_IsEmptyBuffer();
 
 #endif
