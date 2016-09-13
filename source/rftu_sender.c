@@ -6,6 +6,8 @@
 /*************************************************************************/
 #include "rftu.h"
 
+unsigned int number_pkt_loss = 0;
+
 void* SENDER_Start(void *arg)
 {
     // Sender variables
@@ -29,7 +31,7 @@ void* SENDER_Start(void *arg)
 
     unsigned int Sb = 0; // sequence base
     unsigned int N = 0;  // size of window
-    unsigned int number_pkt_loss = 0;
+    
     struct windows_t *windows = NULL;
     int i;
     int file_fd;
@@ -152,7 +154,6 @@ void* SENDER_Start(void *arg)
                         SENDER_AddAllPackages(windows, N, file_fd, &Sn);
                         printf("[SENDER] Sending first window of data.\n");
                         SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO);
-                        // sleep(2);
                     }
                     break;
 
@@ -165,7 +166,7 @@ void* SENDER_Start(void *arg)
                         }
                         // Set ACK flag for every packet received ACK
                         SENDER_SetACKflag(windows, N, rftu_pkg_receive.seq);
-                        // Check seq = Sb in windows
+                        // Check seq = Sb + 1 in windows
                         while((index_finded = SENDER_FindPacketseq(windows, N, Sb + 1)) != RFTU_RET_ERROR)
                         {
                             Sb++;
@@ -338,14 +339,15 @@ void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket
             {
                 printf("[SENDER] Send DATA with sequence number: %u\n", windows[pos_check].package.seq);
             }
-// #ifdef DROPPER
-//             if(rand() % 20 == 0)
-//             {
-//                 printf("[SENDER] Dropped packet with sequence number: %u\n", windows[pos_check].package.seq);
-//                 windows[pos_check].sent = YES;
-//                 continue;
-//             }
-// #endif
+#ifdef DROPPER
+            if(rand() % 20 == 0)
+            {
+                printf("[SENDER] Dropped packet with sequence number: %u\n", windows[pos_check].package.seq);
+                windows[pos_check].sent = YES;
+                number_pkt_loss++;
+                continue;
+            }
+#endif
             sendto(socket_fd, &windows[pos_check].package, sizeof(struct rftu_packet_data_t), 0, (struct sockaddr *) si_other, (socklen_t) sizeof(*si_other));
             windows[pos_check].sent = YES;
         }

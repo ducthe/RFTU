@@ -145,21 +145,25 @@ unsigned char RECEIVER_Start(void)
                                     rftu_pkt_send_cmd.cmd  = RFTU_CMD_ACK;
                                     rftu_pkt_send_cmd.seq  = rftu_pkt_rcv.seq;
                                     rftu_pkt_send_cmd.size = (received_bytes * 100 / file_info.filesize);
+                                    sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 ,
+                                                (struct sockaddr *) &sender_soc, socklen);
                                 }
                                 else
                                 {
                                     if(RECEIVER_IsFullBuffer() == NO)
                                     {
-                                        printf("%s%d\n", "[RECEIVER] Received packet had seq = ", rcv_buffer[0].seq);
+                                        printf("%s%d\n", "[RECEIVER] Received packet had seq = ", rftu_pkt_rcv.seq);
                                         RECEIVER_InsertPacket(rcv_buffer, rftu_pkt_rcv);
-                                        // #ifdef DROPPER
-                                        //                                      if (rand() % 20 == 0)
-                                        //                                      {
-                                        //                                          printf("[RECEIVER] Dropped ACK seq: %u\n", rftu_pkt_rcv.seq);
-                                        //                                          number_ACK_loss++;
-                                        //                                          continue;
-                                        //                                      }
-                                        // #endif
+
+#ifdef DROPPER
+                                            if (rand() % 20 == 0)
+                                            {
+                                                printf("[RECEIVER] Dropped ACK seq: %u\n", rftu_pkt_rcv.seq);
+                                                number_ACK_loss++;
+                                                continue;
+                                            }
+#endif
+
                                         // return ACK
                                         printf("%s%d\n", "[RECEIVER] Send ACK seq: ", rftu_pkt_rcv.seq);
                                         error_cnt = 0;
@@ -264,14 +268,16 @@ void RECEIVER_InsertPacket(struct rftu_packet_data_t *rcv_buffer, struct rftu_pa
     if(RECEIVER_IsEmptyBuffer() == YES)
     {
         rcv_buffer[0] = rftu_pkt_rcv;
+        currentsize_rcv_buffer++;
     }
     else
     {
-        for (i = 0; i < currentsize_rcv_buffer; i++)
+        currentsize_rcv_buffer++;
+        for (i = 0; i < currentsize_rcv_buffer - 1; i++)
         {
             if(rcv_buffer[i].seq > rftu_pkt_rcv.seq)
             {
-                for(k = currentsize_rcv_buffer; k > i; k--)
+                for(k = currentsize_rcv_buffer - 1; k > i; k--)
                 {
                     rcv_buffer[k] = rcv_buffer[k-1];
                 }
@@ -282,7 +288,7 @@ void RECEIVER_InsertPacket(struct rftu_packet_data_t *rcv_buffer, struct rftu_pa
         // if its seq is max, add it in the end of current buffer
         rcv_buffer[i] = rftu_pkt_rcv;
     }
-    currentsize_rcv_buffer++;
+    
 }
 
 int RECEIVER_IsFullBuffer()
