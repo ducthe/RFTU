@@ -6,7 +6,6 @@
 /*************************************************************************/
 #ifndef __RFTU_H__
 #define __RFTU_H__
-// #define DROPPER
 
 /*-------------------*/
 /*-----LIBRARIES-----*/
@@ -26,11 +25,6 @@
 #include <getopt.h>
 #include <pthread.h>
 #include <errno.h>
-
-/*-------------------*/
-/*------MACROS-------*/
-/*-------------------*/
-//#define DROPPER
 
 // RFTU Commands IDs
 #define RFTU_CMD_NULL      0x00
@@ -73,6 +67,8 @@ extern unsigned char flag_server;
 extern unsigned char flag_verbose;
 extern unsigned char flag_file_ok;
 extern unsigned char flag_ip_ok;
+extern unsigned char flag_ACK_dropper;
+extern unsigned char flag_Packet_dropper;
 
 // RFTU Data Package
 struct rftu_packet_data_t {
@@ -130,6 +126,8 @@ extern char 				rftu_filename[256];
 extern unsigned long int  	rftu_filesize;
 extern char 				rftu_ip[20];
 extern unsigned short 		rftu_id;
+extern unsigned char ACK_loss_probability;
+extern unsigned char Packet_loss_probability;
 
 
 /*-----------------------------*/

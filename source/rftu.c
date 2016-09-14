@@ -14,6 +14,11 @@ unsigned char flag_verbose = NO;
 unsigned char flag_server = NO;
 unsigned char flag_file_ok = NO;
 unsigned char flag_ip_ok = NO;
+unsigned char flag_ACK_dropper = NO;
+unsigned char flag_Packet_dropper = NO;
+
+unsigned char ACK_loss_probability;
+unsigned char Packet_loss_probability;
 
 char    rftu_filename[256];
 char    rftu_ip[20];
@@ -21,7 +26,7 @@ char    rftu_ip[20];
 static int option;
 int main(int argc, char *argv[])
 {
-    while((option = getopt(argc, argv, "f:t:svh")) != -1)
+    while((option = getopt(argc, argv, "f:t:se:vh")) != -1)
     {
         switch(option)
         {
@@ -55,6 +60,20 @@ int main(int argc, char *argv[])
                 break;
             case 's':
                 flag_server = YES;
+                break;
+            case 'e':
+                if(flag_server == YES)
+                {
+                    flag_ACK_dropper = YES;
+                    ACK_loss_probability = (unsigned char) atoi(optarg);
+                    printf("ACK_loss_probability = %d\n", ACK_loss_probability);
+                }
+                else
+                {
+                    flag_Packet_dropper = YES;
+                    Packet_loss_probability = (unsigned char) atoi(optarg);
+                    printf("Packet_loss_probability = %d\n", Packet_loss_probability);
+                }
                 break;
             case 'v':
                 flag_verbose = YES;
@@ -114,14 +133,25 @@ unsigned char MAIN_check_file_exist(char *path)
 
 void MAIN_disp_help(void)
 {
-    printf("\n%s\n", "Here are instructions for you\n\n\n\
-            rftu [-f /path/filename -t destination] [-s] [-v]\n\n\
-            rftu [--help] or [-h]\n\n\
-            -s: Run as server mode. Files will be overwriten if existed\n\n\
-            -f: path to file that will be sent, must have -t option\n\
-            -t: IP of destination address, in format X.X.X.X, in pair with -f option\n\n\
-            -v: show progress information, this will slow down the progress\n\n\
-            -h of --help: show help information\n\n");
+    printf("\n%s\n\n", "\
+        Here are instructions for you\n\n\n\
+        Show help information:\n\
+        rftu -h\n\
+        -----------------------------------------------------------------\n\
+        \n\
+        Firstly, the receiver is initialized by command:\n\
+        rftu -s [-e ACK_loss_probability] [-v]\n\n\
+        \n\
+        Secondly, the sender is initialized by command:\n\
+        rftu -f /path/filename -t destination [-e Packet_loss_probability] [-v]\n\n\
+        -----------------------------------------------------------------\n\
+        -----------------------------------------------------------------\n\
+        \n\
+        -s: Run as server mode. Files will be overwriten if existed\n\n\
+        -f: path to file that will be sent, must have -t option\n\n\
+        -t: IP of destination address, in format X.X.X.X, in pair with -f option\n\n\
+        -v: show progress information, this will slow down the progress\n\n\
+        -e: Set ACK or packet loss");
 }
 
 void MAIN_div_file(unsigned long int filesize, unsigned long int *fsize)

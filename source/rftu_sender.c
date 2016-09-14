@@ -283,15 +283,17 @@ void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket
             {
                 printf("[SENDER(%d)] Send DATA with sequence number: %u\n", cThreadID, windows[pos_check].package.seq);
             }
-#ifdef DROPPER
-            if(rand() % 20 == 0)
+// DROPPER
+            if(flag_Packet_dropper == YES)
             {
-                printf("[SENDER(%d)] Dropped packet with sequence number: %u\n", cThreadID, windows[pos_check].package.seq);
-                windows[pos_check].sent = YES;
-                number_pkt_loss++;
-                continue;
+                if(rand() % (100 / Packet_loss_probability) == 0)
+                {
+                    printf("[SENDER(%d)] Dropped packet with sequence number: %u\n", cThreadID, windows[pos_check].package.seq);
+                    windows[pos_check].sent = YES;
+                    number_pkt_loss++;
+                    continue;
+                }
             }
-#endif
             sendto(socket_fd, &windows[pos_check].package, sizeof(struct rftu_packet_data_t), 0, (struct sockaddr *) si_other, (socklen_t) sizeof(*si_other));
             windows[pos_check].sent = YES;
         }

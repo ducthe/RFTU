@@ -135,17 +135,20 @@ void* RECEIVER_Start(void* arg)
                                             printf("[RECEIVER(%d)] Received packet has sequence number = %d\n", stReceiverParam.cThreadID, rftu_pkt_rcv.seq);
                                         }
                                         RECEIVER_InsertPacket(rcv_buffer, rftu_pkt_rcv, currentsize_rcv_buffer);
-#ifdef DROPPER
-                                        if (rand() % 20 == 0)
+// DROPPER
+                                        if(flag_ACK_dropper == YES)
                                         {
-                                            if(flag_verbose == YES)
+                                            if (rand() % (100 / ACK_loss_probability) == 0)
                                             {
-                                                printf("[RECEIVER(%d)] Dropped ACK seq: %u\n", stReceiverParam.cThreadID, rftu_pkt_rcv.seq);
+                                                if(flag_verbose == YES)
+                                                {
+                                                    printf("[RECEIVER(%d)] Dropped ACK seq: %u\n", stReceiverParam.cThreadID, rftu_pkt_rcv.seq);
+                                                }
+                                                number_ACK_loss++;
+                                                continue;
                                             }
-                                            number_ACK_loss++;
-                                            continue;
                                         }
-#endif
+
                                         // Send ACK
                                         if(flag_verbose == YES)
                                         {
