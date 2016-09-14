@@ -10,36 +10,37 @@
 // Include
 #include "rftu.h"
 
-// Variables
-struct sockaddr_in sender_soc, receiver_soc;
-int sd, fd; // socket descriptor and file descriptor
-
-struct rftu_packet_cmd_t  rftu_pkt_send_cmd;
-struct rftu_packet_data_t rftu_pkt_rcv;
-struct rftu_packet_data_t *rcv_buffer;
-unsigned int currentsize_rcv_buffer;
-
-struct timeval timeout; // set time out
-
-char receiving = YES;
-unsigned int Rn = 0;
-unsigned long int received_bytes = 0;
-
-fd_set set;
-int waiting;
-
-unsigned int number_ACK_loss = 0;
-unsigned short rftu_id;
 unsigned int BUFFER_SIZE = 20;
+unsigned short rftu_id;
 
 void* RECEIVER_Start(void* arg)
 {
+    // Variables
+    struct sockaddr_in sender_soc, receiver_soc;
+    int sd, fd; // socket descriptor and file descriptor
+
+    struct rftu_packet_cmd_t  rftu_pkt_send_cmd;
+    struct rftu_packet_data_t rftu_pkt_rcv;
+    struct rftu_packet_data_t *rcv_buffer;
+    unsigned int *currentsize_rcv_buffer = (unsigned int *) calloc(1, sizeof(unsigned int));
+
+    struct timeval timeout; // set time out
+
+    char receiving = YES;
+    unsigned int Rn = 0;
+    unsigned long int received_bytes = 0;
+
+    fd_set set;
+    int waiting;
+
+    unsigned int number_ACK_loss = 0;
+    
+
     // Local Variables
     unsigned char error_cnt = 0;
     socklen_t socklen = 0;
 
     struct g_stReceiverParam stReceiverParam = *(struct g_stReceiverParam *)arg;
-    currentsize_rcv_buffer = 0;
     rcv_buffer = (struct rftu_packet_data_t*) calloc(BUFFER_SIZE, sizeof(struct rftu_packet_data_t));
 
     sd = socket(PF_INET, SOCK_DGRAM, 0); // socket DGRAM
@@ -113,10 +114,13 @@ void* RECEIVER_Start(void* arg)
                             if (rftu_pkt_rcv.id == rftu_id)
                             {
                                 // Resend ACK
-                                if ((RECEIVER_isSeqExistInBuffer(rcv_buffer, BUFFER_SIZE, rftu_pkt_rcv.seq) == YES)
+                                if ((RECEIVER_isSeqExistInBuffer(rcv_buffer, BUFFER_SIZE, rftu_pkt_rcv.seq, currentsize_rcv_buffer) == YES)
                                         || (Rn > rftu_pkt_rcv.seq))
                                 {
-                                    printf("%s%d\n", "[RECEIVER] Resend ACK seq: ", rftu_pkt_rcv.seq);
+                                    if(flag_verbose == YES)
+                                    {
+                                        printf("%s%d\n", "[RECEIVER] Resend ACK seq: ", rftu_pkt_rcv.seq);
+                                    }
                                     error_cnt = 0;
                                     rftu_pkt_send_cmd.cmd  = RFTU_CMD_ACK;
                                     rftu_pkt_send_cmd.seq  = rftu_pkt_rcv.seq;
@@ -125,20 +129,29 @@ void* RECEIVER_Start(void* arg)
                                 }
                                 else
                                 {
-                                    if(RECEIVER_IsFullBuffer() == NO)
+                                    if(RECEIVER_IsFullBuffer(currentsize_rcv_buffer) == NO)
                                     {
-                                        printf("%s%d\n", "[RECEIVER] Received packet has sequence number = ", rftu_pkt_rcv.seq);
-                                        RECEIVER_InsertPacket(rcv_buffer, rftu_pkt_rcv);
+                                        if(flag_verbose == YES)
+                                        {
+                                            printf("%s%d\n", "[RECEIVER] Received packet has sequence number = ", rftu_pkt_rcv.seq);
+                                        }
+                                        RECEIVER_InsertPacket(rcv_buffer, rftu_pkt_rcv, currentsize_rcv_buffer);
 #ifdef DROPPER
                                         if (rand() % 20 == 0)
                                         {
-                                            printf("[RECEIVER] Dropped ACK seq: %u\n", rftu_pkt_rcv.seq);
+                                            if(flag_verbose == YES)
+                                            {
+                                                printf("[RECEIVER] Dropped ACK seq: %u\n", rftu_pkt_rcv.seq);
+                                            }
                                             number_ACK_loss++;
                                             continue;
                                         }
 #endif
                                         // Send ACK
-                                        printf("%s%d\n", "[RECEIVER] Send ACK seq: ", rftu_pkt_rcv.seq);
+                                        if(flag_verbose == YES)
+                                        {
+                                            printf("%s%d\n", "[RECEIVER] Send ACK seq: ", rftu_pkt_rcv.seq);
+                                        }
                                         error_cnt = 0;
                                         rftu_pkt_send_cmd.cmd  = RFTU_CMD_ACK;
                                         rftu_pkt_send_cmd.seq  = rftu_pkt_rcv.seq;
@@ -149,11 +162,14 @@ void* RECEIVER_Start(void* arg)
 
                                     while(rcv_buffer[0].seq == Rn)
                                     {
-                                        printf("%s%d\n", "[RECEIVER] Writing packet had seq = ", rcv_buffer[0].seq);
+                                        if(flag_verbose == YES)
+                                        {
+                                            printf("%s%d\n", "[RECEIVER] Writing packet had seq = ", rcv_buffer[0].seq);
+                                        }
                                         write(stReceiverParam.fd, rcv_buffer[0].data, rcv_buffer[0].size);
                                         received_bytes += rcv_buffer[0].size;
                                         // printf("[RECEIVER] Got %lu bytes - %6.2f\n", received_bytes, (received_bytes * 100.0) / stReceiverParam.nFileSize);
-                                        RECEIVER_ResetBuffer(rcv_buffer);
+                                        RECEIVER_ResetBuffer(rcv_buffer, currentsize_rcv_buffer);
                                         Rn++;
                                         error_cnt = 0;
 
@@ -195,10 +211,10 @@ void* RECEIVER_Start(void* arg)
     }
 }
 
-int RECEIVER_isSeqExistInBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int BUFFER_SIZE, unsigned int seq)
+int RECEIVER_isSeqExistInBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int BUFFER_SIZE, unsigned int seq, unsigned int *currentsize_rcv_buffer)
 {
     int i;
-    for (i = 0; i < currentsize_rcv_buffer; i++)
+    for (i = 0; i < *currentsize_rcv_buffer; i++)
     {
         if(rcv_buffer[i].seq == seq)
         {
@@ -209,23 +225,23 @@ int RECEIVER_isSeqExistInBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned 
 }
 
 
-void RECEIVER_InsertPacket(struct rftu_packet_data_t *rcv_buffer, struct rftu_packet_data_t rftu_pkt_rcv)
+void RECEIVER_InsertPacket(struct rftu_packet_data_t *rcv_buffer, struct rftu_packet_data_t rftu_pkt_rcv, unsigned int *currentsize_rcv_buffer)
 {
     int i, k;
 
-    if(RECEIVER_IsEmptyBuffer() == YES)
+    if(RECEIVER_IsEmptyBuffer(*currentsize_rcv_buffer) == YES)
     {
         rcv_buffer[0] = rftu_pkt_rcv;
-        currentsize_rcv_buffer++;
+        (*currentsize_rcv_buffer)++;
     }
     else
     {
-        currentsize_rcv_buffer++;
-        for (i = 0; i < currentsize_rcv_buffer - 1; i++)
+        (*currentsize_rcv_buffer)++;
+        for (i = 0; i < (*currentsize_rcv_buffer) - 1; i++)
         {
             if(rcv_buffer[i].seq > rftu_pkt_rcv.seq)
             {
-                for(k = currentsize_rcv_buffer - 1; k > i; k--)
+                for(k = (*currentsize_rcv_buffer) - 1; k > i; k--)
                 {
                     rcv_buffer[k] = rcv_buffer[k-1];
                 }
@@ -238,22 +254,22 @@ void RECEIVER_InsertPacket(struct rftu_packet_data_t *rcv_buffer, struct rftu_pa
     }
 }
 
-int RECEIVER_IsFullBuffer()
+int RECEIVER_IsFullBuffer(unsigned int *currentsize_rcv_buffer)
 {
-    return (currentsize_rcv_buffer == BUFFER_SIZE) ? YES : NO;
+    return (*currentsize_rcv_buffer == BUFFER_SIZE) ? YES : NO;
 }
 
-int RECEIVER_IsEmptyBuffer()
+int RECEIVER_IsEmptyBuffer(unsigned int currentsize_rcv_buffer)
 {
     return (currentsize_rcv_buffer == 0) ? YES : NO;
 }
 
-void RECEIVER_ResetBuffer(struct rftu_packet_data_t *rcv_buffer)
+void RECEIVER_ResetBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int *currentsize_rcv_buffer)
 {
     int i;
-    currentsize_rcv_buffer--;
+    (*currentsize_rcv_buffer)--;
 
-    for (i = 0; i < currentsize_rcv_buffer; i++)
+    for (i = 0; i < *currentsize_rcv_buffer; i++)
     {
         rcv_buffer[i] = rcv_buffer[i + 1];
     }

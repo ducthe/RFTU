@@ -49,6 +49,7 @@ unsigned char RECEIVER_Main(void)
         printf("[RECEIVER] Not binded\n");
         return;
     }
+    printf("[RFTU] Verbose Mode: %s\n", (flag_verbose   == YES ? "ON" : "OFF"));
     printf("%s\n\n", "[RECEIVER] Initializing receiver");
 
     while(1)
@@ -117,12 +118,23 @@ unsigned char RECEIVER_Main(void)
                                 int m;
                                 m = pthread_create(&pth, NULL, &RECEIVER_Start, (void*)&stReceiverParam);
                                 if (!m) {
-                                    printf("[RECEIVER] Thread Created.\n");
+                                    if(flag_verbose == YES)
+                                    {
+                                        printf("[RECEIVER] Thread Created.\n");
+                                    }
                                     pthread_join(pth, NULL);
-                                    printf("[RECEIVER] Thread function terminated.\n");
+                                    if(flag_verbose == YES)
+                                    {
+                                        printf("[RECEIVER] Thread function terminated.\n");
+                                    }
                                 }
                                 else
-                                    printf("[RECEIVER] ERROR: Thread creation failed.\n");
+                                {
+                                    if(flag_verbose == YES)
+                                    {
+                                        printf("[RECEIVER] ERROR: Thread creation failed.\n");
+                                    }
+                                }
                             }
                             close(fd);
                             printf("[RECEIVER] Waiting for next files...\n");

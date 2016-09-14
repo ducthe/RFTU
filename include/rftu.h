@@ -154,11 +154,11 @@ unsigned char RECEIVER_Main(void);
 
 // Receiver functions - in rftu_receiver.c
 void* RECEIVER_Start(void* arg);
-int RECEIVER_isSeqExistInBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int BUFFER_SIZE, unsigned int seq);
-void RECEIVER_InsertPacket(struct rftu_packet_data_t *rcv_buffer, struct rftu_packet_data_t rftu_pkt_rcv);
-void RECEIVER_RemovePacket(struct rftu_packet_data_t *rcv_buffer, int BUFFER_SIZE, struct rftu_packet_data_t rftu_pkt_rcv);
-int RECEIVER_IsFullBuffer();
-void RECEIVER_ResetBuffer(struct rftu_packet_data_t *rcv_buffer);
-int RECEIVER_IsEmptyBuffer();
+int RECEIVER_isSeqExistInBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int BUFFER_SIZE, unsigned int seq, unsigned int *currentsize_rcv_buffer);
+void RECEIVER_InsertPacket(struct rftu_packet_data_t *rcv_buffer, struct rftu_packet_data_t rftu_pkt_rcv, unsigned int *currentsize_rcv_buffer);
+void RECEIVER_RemovePacket(struct rftu_packet_data_t *rcv_buffer, int BUFFER_SIZE, struct rftu_packet_data_t rftu_pkt_rcv, unsigned int *currentsize_rcv_buffer);
+int RECEIVER_IsFullBuffer(unsigned int *currentsize_rcv_buffer);
+void RECEIVER_ResetBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int *currentsize_rcv_buffer);
+int RECEIVER_IsEmptyBuffer(unsigned int currentsize_rcv_buffer);
 
 #endif

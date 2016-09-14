@@ -72,6 +72,8 @@ int main(int argc, char *argv[])
 
     if((flag_file_ok == YES) && (flag_ip_ok == YES))
     {
+        printf("[RFTU] Verbose Mode: %s\n", (flag_verbose   == YES ? "ON" : "OFF"));
+        printf("[RFTU] Destination IP: %s\n\n", rftu_ip);
         SENDER_Main();
     }
 

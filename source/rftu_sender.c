@@ -80,7 +80,10 @@ void* SENDER_Start(void *arg)
 
             // Sending the first window of data
             SENDER_AddAllPackages(windows, N, file_fd, &Sn);
-            printf("[SENDER] Sending first window of data.\n");
+            if(flag_verbose == YES)
+            {
+                printf("[SENDER] Sending first window of data.\n");
+            }
             SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO);
         }
         // Initialize timeout
@@ -232,7 +235,10 @@ void SENDER_AddAllPackages(struct windows_t *windows, unsigned char N, int file_
             (*seq)++;                   /* increase sequence number after add new packet*/
         }
     }
-    printf("[SENDER] All packets are added into sending window.\n");
+    if(flag_verbose == YES)
+    {
+        printf("[SENDER] All packets are added into sending window.\n");
+    }
 }
 
 void SENDER_Add_Package(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq, int index_finded)
