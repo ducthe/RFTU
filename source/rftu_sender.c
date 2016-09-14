@@ -40,7 +40,7 @@ void* SENDER_Start(void *arg)
     receiver_addr.sin_port = htons(stSenderParam.nPortNumber);
     if (inet_aton(rftu_ip, &receiver_addr.sin_addr) == 0)
     {
-        printf("[SENDER] ERROR: The address is invalid\n");
+        printf("[SENDER(%d)] ERROR: The address is invalid\n", stSenderParam.cThreadID);
         return;
     }
     memset(receiver_addr.sin_zero, '\0', sizeof(receiver_addr.sin_zero));
@@ -49,7 +49,7 @@ void* SENDER_Start(void *arg)
     // Socket creation
     if ((socket_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     {
-        printf("[SENDER] ERROR: Socket creation fails\n");
+        printf("[SENDER(%d)] ERROR: Socket creation fails\n", stSenderParam.cThreadID);
         return;
     }
 
@@ -69,13 +69,13 @@ void* SENDER_Start(void *arg)
         {
             if((file_fd = open(rftu_filename, O_RDONLY)) == -1)
             {
-                printf("[SENDER] ERROR: Openning file fails\n");
+                printf("[SENDER(%d)] ERROR: Openning file fails\n", stSenderParam.cThreadID);
                 free(windows);
                 close(socket_fd);
                 return;
             }
 
-            // point to this postion of thread 
+            // point to this position of thread
             lseek(file_fd, (off_t)stSenderParam.nFilePointerStart, SEEK_SET);
 
             Sb = -1;         // Set sequence base to -1
@@ -84,8 +84,9 @@ void* SENDER_Start(void *arg)
 
             // Sending the first window of data
             SENDER_AddAllPackages(windows, N, file_fd, &Sn);
-            printf("[SENDER] Sending first window of data.\n");
-            SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO);
+            printf("[SENDER(%d)] All packets are added into sending window.\n", stSenderParam.cThreadID);
+            printf("[SENDER(%d)] Sending first window of data.\n", stSenderParam.cThreadID);
+            SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO, stSenderParam.cThreadID);
         }
         // Initialize timeout
         timeout.tv_sec = RFTU_TIMEOUT;
@@ -99,7 +100,8 @@ void* SENDER_Start(void *arg)
         select_result = select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
         if (select_result == -1) // Error
         {
-            printf("[SENDER] ERROR: Error while waiting for packages\n");
+            printf("[SENDER(%d)] ERROR: Error while waiting for packets\n", stSenderParam.cThreadID);
+            printf("[SENDER(%d)] ERROR: %s", stSenderParam.cThreadID, strerror(errno));
             free(windows);
             close(socket_fd);
             return;
@@ -109,14 +111,14 @@ void* SENDER_Start(void *arg)
             error_cnt++;
             if (error_cnt == RFTU_MAX_RETRY)
             {
-                printf("[SENDER] ERROR: Over the limit of sending times\n");
+                printf("[SENDER(%d)] ERROR: Over the limit of sending times\n", stSenderParam.cThreadID);
                 free(windows);
                 close(socket_fd);
                 return;
             }
             if (sending == YES)
             {
-                SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, YES);
+                SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, YES, stSenderParam.cThreadID);
             }
         }
         else // received characters from fds
@@ -131,7 +133,7 @@ void* SENDER_Start(void *arg)
                     {
                         if (flag_verbose)
                         {
-                            printf("[SENDER] ACK sequence number received: %u\n", rftu_pkg_receive.seq);
+                            printf("[SENDER(%d)] ACK sequence number received: %u\n", stSenderParam.cThreadID, rftu_pkg_receive.seq);
                         }
                         // Set ACK flag for every packet received ACK
                         SENDER_SetACKflag(windows, N, rftu_pkg_receive.seq);
@@ -140,15 +142,15 @@ void* SENDER_Start(void *arg)
                         {
                             Sb++;
                             SENDER_Add_Package(windows, N, file_fd, &Sn, index_finded);
-                            SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO);
+                            SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO, stSenderParam.cThreadID);
                             error_cnt = 0;
                         }
                     }
                     break;
 
                 case RFTU_CMD_COMPLETED:
-                    printf("[SENDER] File transfer completed.\n");
-                    printf("%s%d\n", "[SENDER] Total packets loss: ", number_pkt_loss);
+                    printf("[SENDER(%d)] File transfer completed.\n", stSenderParam.cThreadID);
+                    printf("[SENDER(%d)] Total packets loss: %d\n", stSenderParam.cThreadID, number_pkt_loss);
                     if (sending == YES)
                     {
                         free(windows);
@@ -161,7 +163,7 @@ void* SENDER_Start(void *arg)
                 default:    // others
                     if (error_cnt == RFTU_MAX_RETRY)
                     {
-                        printf("[SENDER] ERROR: Over the limit of sending times\n");
+                        printf("[SENDER(%d)] ERROR: Over the limit of sending times\n", stSenderParam.cThreadID);
                         free(windows);
                         close(file_fd);
                         close(socket_fd);
@@ -236,7 +238,6 @@ void SENDER_AddAllPackages(struct windows_t *windows, unsigned char N, int file_
             (*seq)++;                   /* increase sequence number after add new packet*/
         }
     }
-    printf("[SENDER] All packets are added into sending window.\n");
 }
 
 void SENDER_Add_Package(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq, int index_finded)
@@ -266,7 +267,7 @@ void SENDER_Add_Package(struct windows_t *windows, unsigned char N, int file_fd,
  * all = NO : only send the packets with windows[i].sent = NO
  * all = YES: send all packets in the windows regardless of the value of windows[i].sent
  */
-void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all)
+void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all, char cThreadID)
 {
     int i;
     int pos_check = 0;   /* position check */
@@ -280,12 +281,12 @@ void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket
         {
             if(flag_verbose)
             {
-                printf("[SENDER] Send DATA with sequence number: %u\n", windows[pos_check].package.seq);
+                printf("[SENDER(%d)] Send DATA with sequence number: %u\n", cThreadID, windows[pos_check].package.seq);
             }
 #ifdef DROPPER
             if(rand() % 20 == 0)
             {
-                printf("[SENDER] Dropped packet with sequence number: %u\n", windows[pos_check].package.seq);
+                printf("[SENDER(%d)] Dropped packet with sequence number: %u\n", cThreadID, windows[pos_check].package.seq);
                 windows[pos_check].sent = YES;
                 number_pkt_loss++;
                 continue;

@@ -34,9 +34,7 @@ void* RECEIVER_Start(void* arg)
     int waiting;
 
     unsigned int number_ACK_loss = 0;
-    
 
-    // Local Variables
     unsigned char error_cnt = 0;
     socklen_t socklen = 0;
 
@@ -46,7 +44,7 @@ void* RECEIVER_Start(void* arg)
     sd = socket(PF_INET, SOCK_DGRAM, 0); // socket DGRAM
     if(sd == -1)
     {
-        printf("[RECEIVER] Error to create socket\n");
+        printf("[RECEIVER(%d)] Error to create socket\n", stReceiverParam.cThreadID);
         return;
     }
     // init socket structure
@@ -59,12 +57,12 @@ void* RECEIVER_Start(void* arg)
 
     if (bind(sd, (struct sockaddr *)&receiver_soc, sizeof(receiver_soc)) != 0) // Create a socket for receiver
     {
-        printf("[RECEIVER] Not binded\n");
+        printf("[RECEIVER(%d)] Not binded\n", stReceiverParam.cThreadID);
         close(sd);
         return;
     }
 
-    printf("%s\n\n", "[RECEIVER] Initializing receiver");
+    printf("%s\n\n", "[RECEIVER(%d)] Initializing receiver", stReceiverParam.cThreadID);
 
     /*---START---*/
     error_cnt = 0;
@@ -93,7 +91,7 @@ void* RECEIVER_Start(void* arg)
                         printf("Error: Connection\n\n");
 
                         close(sd);
-                        printf("[RECEIVER] Waiting for next files...\n");
+                        printf("[RECEIVER(%d)] Waiting for next files...\n", stReceiverParam.cThreadID);
                         receiving = NO;
 
                         error_cnt = 0;
@@ -101,7 +99,8 @@ void* RECEIVER_Start(void* arg)
                 }
                 break;
             case -1: // have an error
-                printf("[RECEIVER] Error when waiting for package \n");
+                printf("[RECEIVER(%d)] ERROR: Error while waiting for DATA packets \n", stReceiverParam.cThreadID);
+                printf("[RECEIVER(%d)] ERROR: %s", stReceiverParam.cThreadID, strerror(errno));
                 break;
             default: // Read new packet
                 recvfrom(sd, &rftu_pkt_rcv, sizeof(rftu_pkt_rcv), 0, (struct sockaddr *)&sender_soc, &socklen);
@@ -119,7 +118,7 @@ void* RECEIVER_Start(void* arg)
                                 {
                                     if(flag_verbose == YES)
                                     {
-                                        printf("%s%d\n", "[RECEIVER] Resend ACK seq: ", rftu_pkt_rcv.seq);
+                                        printf("[RECEIVER(%d)] Resend ACK seq: %d\n", stReceiverParam.cThreadID, rftu_pkt_rcv.seq);
                                     }
                                     error_cnt = 0;
                                     rftu_pkt_send_cmd.cmd  = RFTU_CMD_ACK;
@@ -133,7 +132,7 @@ void* RECEIVER_Start(void* arg)
                                     {
                                         if(flag_verbose == YES)
                                         {
-                                            printf("%s%d\n", "[RECEIVER] Received packet has sequence number = ", rftu_pkt_rcv.seq);
+                                            printf("[RECEIVER(%d)] Received packet has sequence number = %d\n", stReceiverParam.cThreadID, rftu_pkt_rcv.seq);
                                         }
                                         RECEIVER_InsertPacket(rcv_buffer, rftu_pkt_rcv, currentsize_rcv_buffer);
 #ifdef DROPPER
@@ -141,7 +140,7 @@ void* RECEIVER_Start(void* arg)
                                         {
                                             if(flag_verbose == YES)
                                             {
-                                                printf("[RECEIVER] Dropped ACK seq: %u\n", rftu_pkt_rcv.seq);
+                                                printf("[RECEIVER(%d)] Dropped ACK seq: %u\n", stReceiverParam.cThreadID, rftu_pkt_rcv.seq);
                                             }
                                             number_ACK_loss++;
                                             continue;
@@ -150,7 +149,7 @@ void* RECEIVER_Start(void* arg)
                                         // Send ACK
                                         if(flag_verbose == YES)
                                         {
-                                            printf("%s%d\n", "[RECEIVER] Send ACK seq: ", rftu_pkt_rcv.seq);
+                                            printf("[RECEIVER(%d)] Send ACK seq: %d\n", stReceiverParam.cThreadID, rftu_pkt_rcv.seq);
                                         }
                                         error_cnt = 0;
                                         rftu_pkt_send_cmd.cmd  = RFTU_CMD_ACK;
@@ -164,11 +163,11 @@ void* RECEIVER_Start(void* arg)
                                     {
                                         if(flag_verbose == YES)
                                         {
-                                            printf("%s%d\n", "[RECEIVER] Writing packet had seq = ", rcv_buffer[0].seq);
+                                            printf("[RECEIVER(%d)] Writing packet had seq = %d\n", stReceiverParam.cThreadID, rcv_buffer[0].seq);
                                         }
                                         write(stReceiverParam.fd, rcv_buffer[0].data, rcv_buffer[0].size);
                                         received_bytes += rcv_buffer[0].size;
-                                        // printf("[RECEIVER] Got %lu bytes - %6.2f\n", received_bytes, (received_bytes * 100.0) / stReceiverParam.nFileSize);
+                                        // printf("[RECEIVER(%d)] Got %lu bytes - %6.2f\n", stReceiverParam.cThreadID, received_bytes, (received_bytes * 100.0) / stReceiverParam.nFileSize);
                                         RECEIVER_ResetBuffer(rcv_buffer, currentsize_rcv_buffer);
                                         Rn++;
                                         error_cnt = 0;
@@ -176,7 +175,7 @@ void* RECEIVER_Start(void* arg)
                                         // When received file completly
                                         if (received_bytes == stReceiverParam.nFileSize)
                                         {
-                                            printf("[RECEIVER] Sending COMPLETED cmd\n");
+                                            printf("[RECEIVER(%d)] Sending COMPLETED cmd\n", stReceiverParam.cThreadID);
 
                                             // send complete command
                                             rftu_pkt_send_cmd.cmd  = RFTU_CMD_COMPLETED;
@@ -186,9 +185,9 @@ void* RECEIVER_Start(void* arg)
 
                                             sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 ,
                                                     (struct sockaddr *) &sender_soc, socklen);
-                                            printf("[RECEIVER] File receiving completed\n");
-                                            /* printf("[RECEIVER] Saved file to : %s\n\n", path); */
-                                            printf("%s%d\n", "[RECEIVER] Total ACK loss: ", number_ACK_loss);
+                                            printf("[RECEIVER(%d)] File receiving completed\n", stReceiverParam.cThreadID);
+                                            /* printf("[RECEIVER(%d)] Saved file to : %s\n\n", path); */
+                                            printf("[RECEIVER(%d)] Total ACK loss: %d\n", stReceiverParam.cThreadID, number_ACK_loss);
                                             // dont get any DATA segment
                                             receiving = NO;
                                             close(sd);
@@ -199,12 +198,12 @@ void* RECEIVER_Start(void* arg)
                             }
                             else
                             {
-                                printf("[RECEIVER] Unknown ID: %i\n", rftu_pkt_rcv.id);
+                                printf("[RECEIVER(%d)] Unknown ID: %i\n", rftu_pkt_rcv.id, stReceiverParam.cThreadID);
                             }
                         }
                         break;
                     default:
-                        printf("Unknown command %u\n", rftu_pkt_rcv.cmd);
+                        printf("[RECEIVER(%d)] Unknown command %u\n", stReceiverParam.cThreadID, rftu_pkt_rcv.cmd);
                         break;
                 }
         }

@@ -39,27 +39,29 @@ unsigned char SENDER_Main(void)
     file_info.filesize = SENDER_Get_Filesize(rftu_filename);
     rftu_filesize = file_info.filesize;
 
-    printf("[SENDER] Filename is %s\n", file_info.filename);
-    printf("[SENDER] Filesize is %lu bytes\n", rftu_filesize);
+    printf("[SENDER Main] Filename is %s\n", file_info.filename);
+    printf("[SENDER Main] Filesize is %lu bytes\n", rftu_filesize);
 
-    // Divide original file to 2 part 
+    // Divide original file to 2 part
     fsize = (unsigned long int *)malloc(2 * sizeof(unsigned long int));
     MAIN_div_file(rftu_filesize, fsize);
 
-    printf("Size of file 1: %lu (bytes)\n", *(fsize + 0));
-    printf("Size of file 2: %lu (bytes)\n", *(fsize + 1));
+    printf("[SENDER Main] Size of portion 1 of the file: %lu (bytes)\n", *(fsize + 0));
+    printf("[SENDER Main] Size of portion 2 of the file: %lu (bytes)\n", *(fsize + 1));
 
     // Param of thread sender [1]
     stSenderParam[0].nPortNumber = RFTU_PORT_1;
     stSenderParam[0].unWindowSize = RFTU_WINDOW_SIZE;
     stSenderParam[0].nFilePointerStart = 0;
     stSenderParam[0].nFileSize = *(fsize + 0);
+    stSenderParam[0].cThreadID = 0;
 
     // Param of thread sender [2]
     stSenderParam[1].nPortNumber = RFTU_PORT_2;
     stSenderParam[1].unWindowSize = RFTU_WINDOW_SIZE;
     stSenderParam[1].nFilePointerStart = *(fsize + 0);
     stSenderParam[1].nFileSize = *(fsize + 1);
+    stSenderParam[1].cThreadID = 1;
 
 
     // Configure settings of the receiver address struct
@@ -67,7 +69,7 @@ unsigned char SENDER_Main(void)
     receiver_addr.sin_port = htons(RFTU_WELCOME_PORT); //8880
     if (inet_aton(rftu_ip, &receiver_addr.sin_addr) == 0)
     {
-        printf("[SENDER] ERROR: The address is invalid\n");
+        printf("[SENDER Main] ERROR: The address is invalid\n");
         return RFTU_RET_ERROR;
     }
     memset(receiver_addr.sin_zero, '\0', sizeof(receiver_addr.sin_zero));
@@ -76,7 +78,7 @@ unsigned char SENDER_Main(void)
     // Socket creation
     if ((socket_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     {
-        printf("[SENDER] ERROR: Socket creation fails\n");
+        printf("[SENDER Main] ERROR: Socket creation fails\n");
         return RFTU_RET_ERROR;
     }
 
@@ -92,7 +94,7 @@ unsigned char SENDER_Main(void)
         memcpy(rftu_pkg_send.data, &file_info, sizeof(file_info));
 
         // Sent the INIT packet
-        printf("[SENDER] Sending INIT message\n");
+        printf("[SENDER Main] Sending INIT message\n");
         sendto(socket_fd, &rftu_pkg_send, sizeof(rftu_pkg_send), 0, (struct sockaddr*)&receiver_addr, socklen);
 
         // Initialize timeout
@@ -107,7 +109,8 @@ unsigned char SENDER_Main(void)
         select_result = select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
         if (select_result == -1) // Error
         {
-            printf("[SENDER] ERROR: Error while waiting for packages\n");
+            printf("[SENDER Main] ERROR: Error while waiting for packets\n");
+            printf("[SENDER Main] ERROR: %s", strerror(errno));
             close(socket_fd);
             return RFTU_RET_ERROR;
         }
@@ -116,7 +119,7 @@ unsigned char SENDER_Main(void)
             error_cnt++;
             if (error_cnt == RFTU_MAX_RETRY)
             {
-                printf("[SENDER] ERROR: Over the limit of sending times\n");
+                printf("[SENDER Main] ERROR: Over the limit of sending times\n");
                 close(socket_fd);
                 return RFTU_RET_ERROR;
             }
@@ -128,28 +131,38 @@ unsigned char SENDER_Main(void)
             switch(rftu_pkg_receive.cmd)
             {
                 case RFTU_CMD_READY:
-                    printf("[SENDER] READY message received\n");
+                    printf("[SENDER Main] READY message received\n");
                     rftu_id = rftu_pkg_receive.id;  // Get transmission ID
                     // Threads creation
-                   
-                        
-                        pthread_create(&pth[0], NULL, &SENDER_Start, (void *)&stSenderParam[0]);
-                        pthread_create(&pth[1], NULL, &SENDER_Start, (void *)&stSenderParam[1]);
-
-                        pthread_join(pth[0], NULL);
-                        pthread_join(pth[1], NULL);
-                        // if (!m)
-                        // {
-                        //     printf("[SENDER] Thread created.\n");
-                        //     pthread_join(pth[thread_index], NULL);
-                        // }
-                        // else
-                        //     printf("[SENDER] ERROR: Thread creation failed.\n");
-                    
+                    {
+                        int m, n;
+                        m = pthread_create(&pth[0], NULL, &SENDER_Start, (void *)&stSenderParam[0]);
+                        n = pthread_create(&pth[1], NULL, &SENDER_Start, (void *)&stSenderParam[1]);
+                        if (!m && !n)
+                        {
+                            if (flag_verbose)
+                            {
+                                printf("[SENDER Main] Thread Created.\n");
+                            }
+                            pthread_join(pth[0], NULL);
+                            pthread_join(pth[1], NULL);
+                            if (flag_verbose)
+                            {
+                                printf("[SENDER Main] Thread functions are terminated.\n");
+                            }
+                        }
+                        else
+                        {
+                            if (flag_verbose)
+                            {
+                                printf("[SENDER Main] ERROR: Thread creation failed.\n");
+                            }
+                        }
+                    }
                     close(socket_fd);
                     return RFTU_RET_OK;
                 case RFTU_CMD_NOSPACE:
-                    printf("[SENDER] ERROR: No available space at receiver machine\n");
+                    printf("[SENDER Main] ERROR: No available space at receiver machine\n");
                     close(socket_fd);
                     return RFTU_RET_ERROR;
                 default:

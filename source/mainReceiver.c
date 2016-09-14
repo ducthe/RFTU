@@ -34,7 +34,7 @@ unsigned char RECEIVER_Main(void)
     sd = socket(PF_INET, SOCK_DGRAM, 0); // socket DGRAM
     if(sd == -1)
     {
-        printf("[RECEIVER] ERROR: Fail to create socket\n");
+        printf("[RECEIVER Main] ERROR: Fail to create socket\n");
         return;
     }
 
@@ -49,11 +49,11 @@ unsigned char RECEIVER_Main(void)
     // Create a socket for receiver
     if (bind(sd, (struct sockaddr *)&receiver_soc, sizeof(receiver_soc)) != 0)
     {
-        printf("[RECEIVER] Not binded\n");
+        printf("[RECEIVER Main] Not binded\n");
         return;
     }
     // printf("[RFTU] Verbose Mode: %s\n", (flag_verbose   == YES ? "ON" : "OFF"));
-    printf("%s\n\n", "[RECEIVER] Initializing receiver");
+    printf("%s\n\n", "[RECEIVER Main] Initializing receiver");
 
     while(1)
     {
@@ -70,13 +70,14 @@ unsigned char RECEIVER_Main(void)
                 error_cnt++;
                 if (error_cnt == RFTU_MAX_RETRY)
                 {
-                    printf("[RECEIVER] ERROR: Connection Error\n\n");
-                    printf("[RECEIVER] Waiting for next files...\n");
+                    printf("[RECEIVER Main] ERROR: Connection Error\n\n");
+                    printf("[RECEIVER Main] Waiting for next files...\n");
                     error_cnt = 0;
                 }
                 break;
             case -1: // An error occured
-                printf("[RECEIVER] ERROR: An error occured when waiting for INIT WELLCOME packet \n");
+                printf("[RECEIVER Main] ERROR: An error occured when waiting for INIT packet\n");
+                printf("[RECEIVER Main] ERROR: %s", strerror(errno));
                 break;
             default: // Read new packet
                 recvfrom(sd, &rftu_pkt_rcv, sizeof(rftu_pkt_rcv), 0, (struct sockaddr *)&sender_soc, &socklen);
@@ -86,7 +87,7 @@ unsigned char RECEIVER_Main(void)
                     case RFTU_CMD_INIT:
                         // Open file
                         file_info = *((struct file_info_t *) &rftu_pkt_rcv.data);
-                        printf("File info:\n File name : %s, Filesize: %ld bytes \n", file_info.filename, file_info.filesize);
+                        printf("[RECEIVER Main] File info:\n File name : %s, Filesize: %ld bytes \n", file_info.filename, file_info.filesize);
                         rftu_filesize = file_info.filesize;
 
                         // Divide original file to part 
@@ -103,14 +104,14 @@ unsigned char RECEIVER_Main(void)
                         fd2 = open(path, O_CREAT | O_WRONLY, 0666);
                         if (fd1 < 0 && fd2 < 0)
                         {
-                            printf("[RECEIVER] There is nospace, cannot create the file\n");
+                            printf("[RECEIVER Main] There is nospace, cannot create the file\n");
                             // Send command NOSPACE to sender
                             rftu_pkt_send_cmd.cmd = RFTU_CMD_NOSPACE;
                             sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 , (struct sockaddr *) &sender_soc, socklen);
                         }
                         else
                         {
-                            printf("[RECEIVER] Saving file to : %s\n", path);
+                            printf("[RECEIVER Main] Saving file to : %s\n", path);
                             // Send command READY to sender
                             rftu_pkt_send_cmd.cmd = RFTU_CMD_READY;
                             rftu_pkt_send_cmd.id = rand();
@@ -123,12 +124,14 @@ unsigned char RECEIVER_Main(void)
                             stReceiverParam[0].fd = fd1;
                             stReceiverParam[0].nFilePointerStart = 0;
                             stReceiverParam[0].nFileSize = *(fsize + 0);
+                            stReceiverParam[0].cThreadID = 0;
 
                             // Param for thread 2
                             stReceiverParam[1].nPortNumber = RFTU_PORT_2;
                             stReceiverParam[1].fd = fd2;
                             stReceiverParam[1].nFilePointerStart = *(fsize + 0);
                             stReceiverParam[1].nFileSize = *(fsize + 1);
+                            stReceiverParam[1].cThreadID = 1;
 
                             // Thread creation
                             {
@@ -141,30 +144,30 @@ unsigned char RECEIVER_Main(void)
                                 if (!m && !n) {
                                     if(flag_verbose == YES)
                                     {
-                                        printf("[RECEIVER] Thread Created.\n");
+                                        printf("[RECEIVER Main] Thread Created.\n");
                                     }
                                     pthread_join(pth[0], NULL);
                                     pthread_join(pth[1], NULL);
                                     if(flag_verbose == YES)
                                     {
-                                        printf("[RECEIVER] Thread function terminated.\n");
+                                        printf("[RECEIVER Main] Thread function are terminated.\n");
                                     }
                                 }
                                 else
                                 {
                                     if(flag_verbose == YES)
                                     {
-                                        printf("[RECEIVER] ERROR: Thread creation failed.\n");
+                                        printf("[RECEIVER Main] ERROR: Thread creation failed.\n");
                                     }
                                 }
                             }
                             close(fd1);
                             close(fd2);
-                            printf("[RECEIVER] Waiting for next files...\n");
+                            printf("[RECEIVER Main] Waiting for next files...\n");
                         }
                         break;
                     default:
-                        printf("Unknown command %u\n", rftu_pkt_rcv.cmd);
+                        printf("[RECEIVER Main] Unknown command %u\n", rftu_pkt_rcv.cmd);
                         break;
                 }
         }

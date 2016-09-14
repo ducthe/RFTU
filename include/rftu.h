@@ -25,6 +25,7 @@
 #include <libgen.h>
 #include <getopt.h>
 #include <pthread.h>
+#include <errno.h>
 
 /*-------------------*/
 /*------MACROS-------*/
@@ -108,6 +109,7 @@ struct g_stSenderParam {
     unsigned int unWindowSize;
     int nFilePointerStart;
     int nFileSize;
+    char cThreadID;
 };
 
 struct g_stReceiverParam {
@@ -115,6 +117,7 @@ struct g_stReceiverParam {
     int fd;
     int nFilePointerStart;
     int nFileSize;
+    char cThreadID;
 };
 
 struct g_stPortInfo {
@@ -147,7 +150,7 @@ unsigned long int SENDER_Get_Filesize(char *path);
 void* SENDER_Start(void* arg);
 void SENDER_AddAllPackages(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq);
 void SENDER_Add_Package(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq, int index_finded);
-void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all);
+void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all, char cThreadID);
 void SENDER_SetACKflag(struct windows_t *windows, unsigned char N, unsigned int seq);
 int SENDER_FindPacketseq(struct windows_t *windows, unsigned char N, unsigned int seq);
 

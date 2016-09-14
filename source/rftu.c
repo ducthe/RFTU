@@ -4,8 +4,6 @@
  * Date: 06-Sep-2016
  *
  *
-
-
 */
 /*************************************************************************/
 /* Include file */
@@ -128,9 +126,10 @@ void MAIN_disp_help(void)
 
 void MAIN_div_file(unsigned long int filesize, unsigned long int *fsize)
 {
-    int n;
-    n = filesize/4;
+    unsigned long int n;
+    n = filesize/1024;
+    n = n/4*1024;
 
-    *(fsize + 0) = n * 1;
+    *(fsize + 0) = n;
     *(fsize + 1) = filesize - n;
 }
