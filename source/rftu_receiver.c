@@ -149,6 +149,8 @@ void* RECEIVER_Start(void* arg)
                                     while(rcv_buffer[0].seq == Rn)
                                     {
                                         printf("%s%d\n", "[RECEIVER] Writing packet had seq = ", rcv_buffer[0].seq);
+                                        //write(stReceiverParam.fd, rcv_buffer[0].data, rcv_buffer[0].size);
+                                        lseek(stReceiverParam.fd, stReceiverParam.nFilePointerStart, SEEK_SET);
                                         write(stReceiverParam.fd, rcv_buffer[0].data, rcv_buffer[0].size);
                                         received_bytes += rcv_buffer[0].size;
                                         // printf("[RECEIVER] Got %lu bytes - %6.2f\n", received_bytes, (received_bytes * 100.0) / stReceiverParam.nFileSize);

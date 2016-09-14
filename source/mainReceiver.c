@@ -59,7 +59,7 @@ unsigned char RECEIVER_Main(void)
         FD_ZERO (&set);
         FD_SET (sd, &set);
         waiting = select(FD_SETSIZE, &set, NULL, NULL,
-                &timeout);
+                            &timeout);
         switch(waiting)
         {
             case 0:  // time out
@@ -72,7 +72,7 @@ unsigned char RECEIVER_Main(void)
                 }
                 break;
             case -1: // An error occured
-                printf("[RECEIVER] ERROR: An error occured when waiting for INIT packet\n");
+                printf("[RECEIVER] ERROR: An error occured when waiting for INIT WELLCOME packet \n");
                 break;
             default: // Read new packet
                 recvfrom(sd, &rftu_pkt_rcv, sizeof(rftu_pkt_rcv), 0, (struct sockaddr *)&sender_soc, &socklen);
@@ -110,6 +110,7 @@ unsigned char RECEIVER_Main(void)
                             stReceiverParam.nPortNumber = RFTU_PORT_1;
                             stReceiverParam.fd = fd;
                             stReceiverParam.nFileSize = rftu_filesize;
+                            stReceiverParam.nFilePointerStart = 0;
 
                             // Thread creation
                             {
