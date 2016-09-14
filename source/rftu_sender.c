@@ -54,7 +54,7 @@ void* SENDER_Start(void *arg)
     }
 
     // Specify value of window size N
-    N = (rftu_filesize/RFTU_FRAME_SIZE) + 1;
+    N = (stSenderParam.nFileSize/RFTU_FRAME_SIZE) + 1;
     N = (N > stSenderParam.unWindowSize)? stSenderParam.unWindowSize : N;
 
     // Initialize sending window
@@ -74,16 +74,17 @@ void* SENDER_Start(void *arg)
                 close(socket_fd);
                 return;
             }
+
+            // point to this postion of thread 
+            lseek(file_fd, (off_t)stSenderParam.nFilePointerStart, SEEK_SET);
+
             Sb = -1;         // Set sequence base to -1
             Sn = 0;         // Set sequence number to 0
             sending = YES;  // let sending flag be YES
 
             // Sending the first window of data
             SENDER_AddAllPackages(windows, N, file_fd, &Sn);
-            if(flag_verbose == YES)
-            {
-                printf("[SENDER] Sending first window of data.\n");
-            }
+            printf("[SENDER] Sending first window of data.\n");
             SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO);
         }
         // Initialize timeout
@@ -235,10 +236,7 @@ void SENDER_AddAllPackages(struct windows_t *windows, unsigned char N, int file_
             (*seq)++;                   /* increase sequence number after add new packet*/
         }
     }
-    if(flag_verbose == YES)
-    {
-        printf("[SENDER] All packets are added into sending window.\n");
-    }
+    printf("[SENDER] All packets are added into sending window.\n");
 }
 
 void SENDER_Add_Package(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq, int index_finded)

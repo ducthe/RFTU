@@ -11,7 +11,7 @@
 #include "rftu.h"
 
 unsigned int BUFFER_SIZE = 20;
-unsigned short rftu_id;
+
 
 void* RECEIVER_Start(void* arg)
 {

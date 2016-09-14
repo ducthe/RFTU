@@ -125,3 +125,12 @@ void MAIN_disp_help(void)
             -v: show progress information, this will slow down the progress\n\n\
             -h of --help: show help information\n\n");
 }
+
+void MAIN_div_file(unsigned long int filesize, unsigned long int *fsize)
+{
+    int n;
+    n = filesize/4;
+
+    *(fsize + 0) = n * 1;
+    *(fsize + 1) = filesize - n;
+}

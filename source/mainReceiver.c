@@ -19,13 +19,16 @@ fd_set set;
 int waiting;
 unsigned short rftu_id;
 unsigned long int   rftu_filesize;
+unsigned long int *fsize;
 
-pthread_t pth;
-struct g_stReceiverParam stReceiverParam;
+pthread_t pth[2];
+int thread_index;
+struct g_stReceiverParam stReceiverParam[2];
 
 unsigned char RECEIVER_Main(void)
 {
     unsigned char error_cnt = 0;
+    int sd, fd1, fd2; // socket descriptor and file descriptor
     socklen_t socklen = 0;
 
     sd = socket(PF_INET, SOCK_DGRAM, 0); // socket DGRAM
@@ -49,7 +52,7 @@ unsigned char RECEIVER_Main(void)
         printf("[RECEIVER] Not binded\n");
         return;
     }
-    printf("[RFTU] Verbose Mode: %s\n", (flag_verbose   == YES ? "ON" : "OFF"));
+    // printf("[RFTU] Verbose Mode: %s\n", (flag_verbose   == YES ? "ON" : "OFF"));
     printf("%s\n\n", "[RECEIVER] Initializing receiver");
 
     while(1)
@@ -85,13 +88,20 @@ unsigned char RECEIVER_Main(void)
                         file_info = *((struct file_info_t *) &rftu_pkt_rcv.data);
                         printf("File info:\n File name : %s, Filesize: %ld bytes \n", file_info.filename, file_info.filesize);
                         rftu_filesize = file_info.filesize;
+
+                        // Divide original file to part 
+                        fsize = (unsigned long int *)malloc(2*sizeof(unsigned long int));
+                        MAIN_div_file(rftu_filesize, fsize);
+
                         // Create the file to save
                         strcpy(path,"/home/");
                         strcat(path, getlogin());
                         strcat(path, "/Desktop/");
                         strcat(path, file_info.filename);
-                        fd = open(path, O_CREAT | O_WRONLY, 0666);
-                        if (fd < 0)
+                        
+                        fd1 = open(path, O_CREAT | O_WRONLY, 0666);
+                        fd2 = open(path, O_CREAT | O_WRONLY, 0666);
+                        if (fd1 < 0 && fd2 < 0)
                         {
                             printf("[RECEIVER] There is nospace, cannot create the file\n");
                             // Send command NOSPACE to sender
@@ -108,21 +118,33 @@ unsigned char RECEIVER_Main(void)
                             printf("READY cmd.id: %d\n", rftu_id );
                             sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 , (struct sockaddr *) &sender_soc, socklen);
 
-                            stReceiverParam.nPortNumber = RFTU_PORT_1;
-                            stReceiverParam.fd = fd;
-                            stReceiverParam.nFileSize = rftu_filesize;
-                            stReceiverParam.nFilePointerStart = 0;
+                            // Param for thread 1
+                            stReceiverParam[0].nPortNumber = RFTU_PORT_1;
+                            stReceiverParam[0].fd = fd1;
+                            stReceiverParam[0].nFilePointerStart = 0;
+                            stReceiverParam[0].nFileSize = *(fsize + 0);
+
+                            // Param for thread 2
+                            stReceiverParam[1].nPortNumber = RFTU_PORT_2;
+                            stReceiverParam[1].fd = fd2;
+                            stReceiverParam[1].nFilePointerStart = *(fsize + 0);
+                            stReceiverParam[1].nFileSize = *(fsize + 1);
 
                             // Thread creation
                             {
-                                int m;
-                                m = pthread_create(&pth, NULL, &RECEIVER_Start, (void*)&stReceiverParam);
-                                if (!m) {
+                                int m, n;
+                                // m = pthread_create(&pth, NULL, &RECEIVER_Start, (void*)&stReceiverParam);
+
+                                m = pthread_create(&pth[0], NULL, &RECEIVER_Start, (void*)&stReceiverParam[0]);
+                                n = pthread_create(&pth[1], NULL, &RECEIVER_Start, (void*)&stReceiverParam[1]);
+
+                                if (!m && !n) {
                                     if(flag_verbose == YES)
                                     {
                                         printf("[RECEIVER] Thread Created.\n");
                                     }
-                                    pthread_join(pth, NULL);
+                                    pthread_join(pth[0], NULL);
+                                    pthread_join(pth[1], NULL);
                                     if(flag_verbose == YES)
                                     {
                                         printf("[RECEIVER] Thread function terminated.\n");
@@ -136,7 +158,8 @@ unsigned char RECEIVER_Main(void)
                                     }
                                 }
                             }
-                            close(fd);
+                            close(fd1);
+                            close(fd2);
                             printf("[RECEIVER] Waiting for next files...\n");
                         }
                         break;
