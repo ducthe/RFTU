@@ -62,7 +62,7 @@ void* RECEIVER_Start(void* arg)
         return;
     }
 
-    printf("%s\n\n", "[RECEIVER(%d)] Initializing receiver", stReceiverParam.cThreadID);
+    printf("[RECEIVER(%d)] Initializing receiver\n", stReceiverParam.cThreadID);
 
     /*---START---*/
     error_cnt = 0;
