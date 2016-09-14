@@ -127,8 +127,8 @@ void MAIN_disp_help(void)
 void MAIN_div_file(unsigned long int filesize, unsigned long int *fsize)
 {
     unsigned long int n;
-    n = filesize/1024;
-    n = n/4*1024;
+    n = filesize/RFTU_FRAME_SIZE;
+    n = n/4*RFTU_FRAME_SIZE;
 
     *(fsize + 0) = n;
     *(fsize + 1) = filesize - n;
