@@ -191,20 +191,6 @@ void* RECEIVER_Start(void* arg)
                         break;
                 }
         }
-
-        if (receiving == YES)
-        {
-            if (error_cnt == RFTU_MAX_RETRY)
-            {
-                printf("Error: Connection\n\n");
-
-                close(sd);
-                printf("[RECEIVER] Waiting for next files...\n");
-                receiving = NO;
-
-                error_cnt = 0;
-            }
-        }
     }
 }
 

@@ -10,7 +10,7 @@ unsigned char SENDER_Main(void)
 {
     pthread_t pth;
     struct g_stSenderParam stSenderParam;
-    stSenderParam.nPortNumber = RFTU_PORT; //8888
+    stSenderParam.nPortNumber = RFTU_PORT_1;
     stSenderParam.unWindowSize = RFTU_WINDOW_SIZE;
 
     // Sender variables

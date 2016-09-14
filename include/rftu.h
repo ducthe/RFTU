@@ -56,10 +56,10 @@
 #define RFTU_MAX_RETRY		10
 #define RFTU_WINDOW_SIZE	8
 
-// #define THREAD_NUMBER       2
-#define RFTU_PORT           8888
-// #define RFTU_PORT_1         8881
-// #define RFTU_PORT_2         8882
+// #define RFTU_PORT           8888
+#define THREAD_NUMBER       2
+#define RFTU_PORT_1         8881
+#define RFTU_PORT_2         8882
 // #define RFTU_PORT_3         8883
 // #define RFTU_PORT_4         8884
 // #define RFTU_PORT_5         8885
@@ -106,19 +106,20 @@ struct windows_t {
 struct g_stSenderParam {
     int nPortNumber;
     unsigned int unWindowSize;
-    // int nFileSize;
+    int nFilePointerStart;
 };
 
 struct g_stReceiverParam {
     int nPortNumber;
     int fd;
+    int nFilePointerStart;
     int nFileSize;
 };
 
-// struct g_stPortInfo {
-//     unsigned char ucNumberOfPort;
-//     int nPortNumber[THREAD_NUMBER];
-// };
+struct g_stPortInfo {
+    unsigned char ucNumberOfPort;
+    int nPortNumber[THREAD_NUMBER];
+};
 
 // RFTU Global Variables
 extern char 				rftu_filename[256];

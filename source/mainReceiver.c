@@ -107,7 +107,7 @@ unsigned char RECEIVER_Main(void)
                             printf("READY cmd.id: %d\n", rftu_id );
                             sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 , (struct sockaddr *) &sender_soc, socklen);
 
-                            stReceiverParam.nPortNumber = RFTU_PORT;
+                            stReceiverParam.nPortNumber = RFTU_PORT_1;
                             stReceiverParam.fd = fd;
                             stReceiverParam.nFileSize = rftu_filesize;
 
