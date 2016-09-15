@@ -45,15 +45,14 @@ unsigned char SENDER_Main(void)
     printf("[SENDER Main] Filename is %s\n", stFileInfo.cFileName);
     printf("[SENDER Main] Filesize is %lu bytes\n", ulRFTUFileSize);
 
-    // Divide original file to 8 part
-    ulFSize = (unsigned long int *)malloc(8 * sizeof(unsigned long int));
-    ulFPoint = (unsigned long int *)malloc(8 * sizeof(unsigned long int));
-    MAIN_div_file(ulRFTUFileSize, ulFSize, ulFPoint);
+    /* ulFSize = (unsigned long int *)malloc(8 * sizeof(unsigned long int)); */
+    /* ulFPoint = (unsigned long int *)malloc(8 * sizeof(unsigned long int)); */
+    /* MAIN_div_file(ulRFTUFileSize, ulFSize, ulFPoint); */
 
-    for (i = 0; i < THREAD_NUMBER; i++)
-    {
-        printf("[SENDER Main] Size of portion %d of the file: %lu (bytes)\n", i+1, *(ulFSize + i));
-    }
+    /* for (i = 0; i < THREAD_NUMBER; i++) */
+    /* { */
+    /*     printf("[SENDER Main] Size of portion %d of the file: %lu (bytes)\n", i+1, *(ulFSize + i)); */
+    /* } */
 
 
     // Configure settings of the receiver address struct
@@ -124,9 +123,15 @@ unsigned char SENDER_Main(void)
             {
                 case RFTU_CMD_READY:
                     printf("[SENDER Main] READY message received\n");
-                    usRFTUid = stRFTUPacketDataReceive.ucID;  // Get transmission ID
-
                     stPortInfoReceive = *((struct g_stPortInfo *) &stRFTUPacketDataReceive.ucData);
+                    ulFSize = (unsigned long int *)malloc(stPortInfoReceive.ucNumberOfPort * sizeof(unsigned long int));
+                    ulFPoint = (unsigned long int *)malloc(stPortInfoReceive.ucNumberOfPort * sizeof(unsigned long int));
+                    MAIN_div_file(ulRFTUFileSize, ulFSize, ulFPoint, stPortInfoReceive.ucNumberOfPort);
+                    for (i = 0; i < THREAD_NUMBER; i++)
+                    {
+                        printf("[SENDER Main] Size of portion %d of the file: %lu (bytes)\n", i+1, *(ulFSize + i));
+                    }
+                    usRFTUid = stRFTUPacketDataReceive.ucID;  // Get transmission ID
 
                     for(i = 0; i < stPortInfoReceive.ucNumberOfPort; i++)
                     {

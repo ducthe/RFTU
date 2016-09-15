@@ -128,7 +128,7 @@ extern unsigned char        ucPacketLossRate;
 void 			MAIN_disp_help(void);
 unsigned char 	MAIN_check_ip(char *ip);
 unsigned char 	MAIN_check_file_exist(char *path);
-void 			MAIN_div_file(unsigned long int filesize, unsigned long int *fsize, unsigned long int *fpoint);
+void 			MAIN_div_file(unsigned long int filesize, unsigned long int *fsize, unsigned long int *fpoint, unsigned char ucPort);
 
 // Sender Main functions - in mainSender.c
 unsigned char SENDER_Main(void);

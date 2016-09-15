@@ -93,9 +93,9 @@ unsigned char RECEIVER_Main(void)
                         ulRFTUFileSize = stFileInfo.ulFileSize;
 
                         // Divide original file to parts
-                        ulFSize = (unsigned long int *)malloc(8*sizeof(unsigned long int));
-                        ulFPoint = (unsigned long int *)malloc(8*sizeof(unsigned long int));
-                        MAIN_div_file(ulRFTUFileSize, ulFSize, ulFPoint);
+                        ulFSize = (unsigned long int *)malloc(THREAD_NUMBER*sizeof(unsigned long int));
+                        ulFPoint = (unsigned long int *)malloc(THREAD_NUMBER*sizeof(unsigned long int));
+                        MAIN_div_file(ulRFTUFileSize, ulFSize, ulFPoint, THREAD_NUMBER);
 
                         // Create the file to save
                         strcpy(path,"/home/");

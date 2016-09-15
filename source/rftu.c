@@ -4,7 +4,7 @@
  * Date: 06-Sep-2016
  *
  *
-*/
+ */
 /*************************************************************************/
 /* Include file */
 #include "rftu.h"
@@ -137,53 +137,42 @@ unsigned char MAIN_check_file_exist(char *path)
 void MAIN_disp_help(void)
 {
     printf("\n%s\n\n", "\
-        Here are instructions for you\n\n\n\
-        Show help information:\n\
-        rftu -h\n\
-        -----------------------------------------------------------------\n\
-        \n\
-        Firstly, the receiver is initialized by command:\n\
-        rftu -s [-e ucAckLossRate] [-v]\n\n\
-        \n\
-        Secondly, the sender is initialized by command:\n\
-        rftu -f /path/filename -t destination [-e ucPacketLossRate] [-v]\n\n\
-        -----------------------------------------------------------------\n\
-        -----------------------------------------------------------------\n\
-        \n\
-        -s: Run as server mode. Files will be overwriten if existed\n\n\
-        -f: path to file that will be sent, must have -t option\n\n\
-        -t: IP of destination address, in format X.X.X.X, in pair with -f option\n\n\
-        -v: show progress information, this will slow down the progress\n\n\
-        -e: Set ACK or packet loss");
+            Here are instructions for you\n\n\n\
+            Show help information:\n\
+            rftu -h\n\
+            -----------------------------------------------------------------\n\
+            \n\
+            Firstly, the receiver is initialized by command:\n\
+            rftu -s [-e ucAckLossRate] [-v]\n\n\
+            \n\
+            Secondly, the sender is initialized by command:\n\
+            rftu -f /path/filename -t destination [-e ucPacketLossRate] [-v]\n\n\
+            -----------------------------------------------------------------\n\
+            -----------------------------------------------------------------\n\
+            \n\
+            -s: Run as server mode. Files will be overwriten if existed\n\n\
+            -f: path to file that will be sent, must have -t option\n\n\
+            -t: IP of destination address, in format X.X.X.X, in pair with -f option\n\n\
+            -v: show progress information, this will slow down the progress\n\n\
+            -e: Set ACK or packet loss");
 }
 
-void MAIN_div_file(unsigned long int filesize, unsigned long int *fsize, unsigned long int *fpoint)
+void MAIN_div_file(unsigned long int filesize, unsigned long int *fsize, unsigned long int *fpoint, unsigned char ucPort)
 {
+    int i;
     unsigned long int n;
     n = filesize/RFTU_FRAME_SIZE;
-    n = n/16*RFTU_FRAME_SIZE;
-
-    *(fpoint + 0) = 0;
-    *(fsize + 0) = n;
-
-    *(fpoint + 1) = n;
-    *(fsize + 1) = n;
-
-    *(fpoint + 2) = 2*n;
-    *(fsize + 2) = n;
-
-    *(fpoint + 3) = 3*n;
-    *(fsize + 3) = n;
-
-    *(fpoint + 4) = n*4;
-    *(fsize + 4) = n*2;
-
-    *(fpoint + 5) = n*6;
-    *(fsize + 5) = n*2;
-
-    *(fpoint + 6) = n*8;
-    *(fsize + 6) = n*4;
-
-    *(fpoint + 7) = n*12;
-    *(fsize + 7) = filesize - (n*12);
+    n = n/ucPort*RFTU_FRAME_SIZE;
+    for (i = 0; i < ucPort; i++)
+    {
+        *(fpoint + i) = n*i;
+        if (i < ucPort - 1)
+        {
+            *(fsize + i) = n;
+        }
+        else
+        {
+            *(fsize + i) = filesize - *(fpoint + i);
+        }
+    }
 }
