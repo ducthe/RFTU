@@ -10,8 +10,10 @@ char path[255] = "/";
 struct sockaddr_in sender_soc, receiver_soc;
 
 struct file_info_t file_info; // File transfered
-struct rftu_packet_cmd_t  rftu_pkt_send_cmd;
+// struct rftu_packet_cmd_t  rftu_pkt_send_init;
+struct rftu_packet_data_t rftu_pkt_send_init;
 struct rftu_packet_data_t rftu_pkt_rcv;
+struct g_stPortInfo port_info;
 
 struct timeval timeout; // set time out
 fd_set set;
@@ -111,18 +113,27 @@ unsigned char RECEIVER_Main(void)
                         {
                             printf("[RECEIVER Main] There is nospace, cannot create the file\n");
                             // Send command NOSPACE to sender
-                            rftu_pkt_send_cmd.cmd = RFTU_CMD_NOSPACE;
-                            sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 , (struct sockaddr *) &sender_soc, socklen);
+                            rftu_pkt_send_init.cmd = RFTU_CMD_NOSPACE;
+                            sendto(sd, &rftu_pkt_send_init, sizeof(rftu_pkt_send_init) , 0 , (struct sockaddr *) &sender_soc, socklen);
                         }
                         else
                         {
                             printf("[RECEIVER Main] Saving file to : %s\n", path);
                             // Send command READY to sender
-                            rftu_pkt_send_cmd.cmd = RFTU_CMD_READY;
-                            rftu_pkt_send_cmd.id = rand();
-                            rftu_id = rftu_pkt_send_cmd.id;
+                            rftu_pkt_send_init.cmd = RFTU_CMD_READY;
+                            rftu_pkt_send_init.id = rand();
+                            rftu_id = rftu_pkt_send_init.id;
+
+                            port_info.ucNumberOfPort = THREAD_NUMBER;
+                            for(i = 0; i < THREAD_NUMBER; i++)
+                            {
+                                port_info.nPortNumber[i] = RFTU_PORT[i];
+                            }
+
+                            memcpy(rftu_pkt_send_init.data, &port_info, sizeof(port_info));
+
                             printf("READY cmd.id: %d\n", rftu_id );
-                            sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 , (struct sockaddr *) &sender_soc, socklen);
+                            sendto(sd, &rftu_pkt_send_init, sizeof(rftu_pkt_send_init) , 0 , (struct sockaddr *) &sender_soc, socklen);
 
                             // Parameters for threads
                             for (i = 0; i < THREAD_NUMBER; i++)

@@ -8,7 +8,7 @@
 
 unsigned char SENDER_Main(void)
 {
-    const unsigned int RFTU_PORT[THREAD_NUMBER] = {8880, 8881, 8882, 8883, 8884, 8885, 8886, 8887};
+    // const unsigned int RFTU_PORT[THREAD_NUMBER] = {8880, 8881, 8882, 8883, 8884, 8885, 8886, 8887};
     pthread_t pth[8];
     struct g_stSenderParam stSenderParam[8];
 
@@ -16,6 +16,7 @@ unsigned char SENDER_Main(void)
     struct file_info_t file_info;  // file info to be sent to receiver in INIT message
     struct rftu_packet_data_t rftu_pkg_send;    // package to be sent
     struct rftu_packet_data_t rftu_pkg_receive; // used to store received package
+    struct g_stPortInfo port_info_reveive;     // used to store received information about port
 
     struct sockaddr_in receiver_addr; // receiver address
     socklen_t socklen = 0;
@@ -54,24 +55,6 @@ unsigned char SENDER_Main(void)
         printf("[SENDER Main] Size of portion %d of the file: %lu (bytes)\n", i+1, *(fsize + i));
     }
 
-    // Parameters of Sender threads
-    for (i = 0; i < THREAD_NUMBER; i++)
-    {
-        stSenderParam[i].nPortNumber = RFTU_PORT[i];
-        stSenderParam[i].nFilePointerStart = *(fpoint + i);
-        stSenderParam[i].nFileSize = *(fsize + i);
-        stSenderParam[i].cThreadID = i;
-    }
-
-    // Thread window size
-    stSenderParam[0].unWindowSize = 8*RFTU_WINDOW_SIZE;
-    stSenderParam[1].unWindowSize = 6*RFTU_WINDOW_SIZE;
-    stSenderParam[2].unWindowSize = 4*RFTU_WINDOW_SIZE;
-    stSenderParam[3].unWindowSize = 4*RFTU_WINDOW_SIZE;
-    stSenderParam[4].unWindowSize = 2*RFTU_WINDOW_SIZE;
-    stSenderParam[5].unWindowSize = 2*RFTU_WINDOW_SIZE;
-    stSenderParam[6].unWindowSize = RFTU_WINDOW_SIZE;
-    stSenderParam[7].unWindowSize = RFTU_WINDOW_SIZE;
 
     // Configure settings of the receiver address struct
     receiver_addr.sin_family = AF_INET;
@@ -142,6 +125,42 @@ unsigned char SENDER_Main(void)
                 case RFTU_CMD_READY:
                     printf("[SENDER Main] READY message received\n");
                     rftu_id = rftu_pkg_receive.id;  // Get transmission ID
+
+                    port_info_reveive = *((struct g_stPortInfo *) &rftu_pkg_receive.data);
+
+                    for(i = 0; i < port_info_reveive.ucNumberOfPort; i++)
+                    {
+                        stSenderParam[i].nPortNumber = port_info_reveive.nPortNumber[i];
+                        stSenderParam[i].nFilePointerStart = *(fpoint + i);
+                        stSenderParam[i].nFileSize = *(fsize + i);
+                        stSenderParam[i].cThreadID = i;
+                        switch(i)
+                        {
+                            case 0: 
+                                stSenderParam[i].unWindowSize = 8*RFTU_WINDOW_SIZE;
+                                break;
+                            case 1:
+                                stSenderParam[i].unWindowSize = 6*RFTU_WINDOW_SIZE;
+                                break;
+                            case 2:
+                                stSenderParam[i].unWindowSize = 4*RFTU_WINDOW_SIZE;
+                                break;
+                            case 3:
+                                stSenderParam[i].unWindowSize = 4*RFTU_WINDOW_SIZE;
+                                break;
+                            case 4:
+                                stSenderParam[i].unWindowSize = 2*RFTU_WINDOW_SIZE;
+                                break;
+                            case 5:
+                                stSenderParam[i].unWindowSize = 2*RFTU_WINDOW_SIZE;
+                                break;
+                            default:
+                                stSenderParam[i].unWindowSize = RFTU_WINDOW_SIZE;
+                                break;
+                        }
+
+                    }
+
                     // Threads creation
                     {
                         int a, b, c, d, e, f, g, h;
