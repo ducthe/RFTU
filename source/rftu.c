@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         switch(option)
         {
             case 'f':
-                if(MAIN_check_file_exist(optarg) == YES)
+                if(MAIN_check_file_exist(optarg) == RFTU_RET_OK)
                 {
                     ucFlagFile = YES;
                     memset(cRFTUFileName, '\0', strlen(cRFTUFileName));
@@ -122,13 +122,16 @@ unsigned char MAIN_check_ip(char *path)
 
 unsigned char MAIN_check_file_exist(char *path)
 {
-    FILE *file;
-    if(file = fopen(path, "r"));
+    if ( access( path, F_OK | R_OK) != -1 )
     {
-        fclose(file);
-        return YES;
+        // file exist
+        return RFTU_RET_OK;
     }
-    return NO;
+    else
+    {
+        // file doesn't exist
+        return RFTU_RET_ERROR;
+    }
 }
 
 void MAIN_disp_help(void)

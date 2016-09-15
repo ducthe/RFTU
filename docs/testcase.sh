@@ -18,7 +18,7 @@ echo "====================================================================="
 echo -e "\n4. Handling the file that does not exist\n\n./rftu -f /home/humax/f"
 ./rftu -f /home/humax/f
 echo "====================================================================="
-echo -e "\n5. Handling the file that does not exist\n\n./rftu -f /home/humax/file -t 290.0.0.1"
+echo -e "\n5. Handling wrong IP address\n\n./rftu -f /home/humax/file -t 290.0.0.1"
 ./rftu -f /home/humax/file -t 290.0.0.1
 echo "====================================================================="
 cd ../docs
