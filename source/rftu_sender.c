@@ -11,43 +11,43 @@ unsigned int number_pkt_loss = 0;
 
 void* SENDER_Start(void *arg)
 {
-    struct rftu_packet_data_t rftu_pkg_send;    // package to be sent
-    struct rftu_packet_data_t rftu_pkg_receive; // used to store received package
+    struct g_stRFTUPacketData stRFTUPacketDataSend;    // package to be sent
+    struct g_stRFTUPacketData stRFTUPacketDataRecv; // used to store received package
 
-    int socket_fd; // socket file descriptor
-    struct sockaddr_in receiver_addr; // receiver address
+    int nSocketFd; // socket file descriptor
+    struct sockaddr_in ReceiverAddr; // receiver address
 
     unsigned int  Sn        = 0;    // sequence number
-    unsigned char error_cnt = 0;
-    unsigned char sending   = NO;
-    int index_finded;
+    unsigned char ucErrorCnt = 0;
+    unsigned char cSending   = NO;
+    int nIndexFound;
 
     fd_set fds; //set of file descriptors to be monitored by select()
-    int select_result;
-    struct timeval timeout;
+    int nSelectResult;
+    struct timeval stTimeOut;
 
     unsigned int Sb = 0; // sequence base
     unsigned int N = 0;  // size of window
 
-    struct windows_t *windows = NULL;
+    struct g_stWindows *stWindows = NULL;
     int file_fd;
     socklen_t socklen = 0;
 
     struct g_stSenderParam stSenderParam = *(struct g_stSenderParam *)arg;
 
     // Configure settings of the receiver address struct
-    receiver_addr.sin_family = AF_INET;
-    receiver_addr.sin_port = htons(stSenderParam.nPortNumber);
-    if (inet_aton(rftu_ip, &receiver_addr.sin_addr) == 0)
+    ReceiverAddr.sin_family = AF_INET;
+    ReceiverAddr.sin_port = htons(stSenderParam.nPortNumber);
+    if (inet_aton(cRFTUIP, &ReceiverAddr.sin_addr) == 0)
     {
         printf("[SENDER(%d)] ERROR: The address is invalid\n", stSenderParam.cThreadID);
         return;
     }
-    memset(receiver_addr.sin_zero, '\0', sizeof(receiver_addr.sin_zero));
-    socklen = sizeof(receiver_addr);
+    memset(ReceiverAddr.sin_zero, '\0', sizeof(ReceiverAddr.sin_zero));
+    socklen = sizeof(ReceiverAddr);
 
     // Socket creation
-    if ((socket_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+    if ((nSocketFd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     {
         printf("[SENDER(%d)] ERROR: Socket creation fails\n", stSenderParam.cThreadID);
         return;
@@ -58,20 +58,20 @@ void* SENDER_Start(void *arg)
     N = (N > stSenderParam.unWindowSize)? stSenderParam.unWindowSize : N;
 
     // Initialize sending window
-    windows = (struct windows_t *) malloc(N * sizeof(struct windows_t));
+    stWindows = (struct g_stWindows *) malloc(N * sizeof(struct g_stWindows));
 
     /*---START---*/
-    error_cnt = 0;
-    sending = NO;
+    ucErrorCnt = 0;
+    cSending = NO;
     while(1)
     {
-        if (sending == NO)
+        if (cSending == NO)
         {
-            if((file_fd = open(rftu_filename, O_RDONLY)) == -1)
+            if((file_fd = open(cRFTUFileName, O_RDONLY)) == -1)
             {
                 printf("[SENDER(%d)] ERROR: Openning file fails\n", stSenderParam.cThreadID);
-                free(windows);
-                close(socket_fd);
+                free(stWindows);
+                close(nSocketFd);
                 return;
             }
 
@@ -80,70 +80,70 @@ void* SENDER_Start(void *arg)
 
             Sb = -1;         // Set sequence base to -1
             Sn = 0;         // Set sequence number to 0
-            sending = YES;  // let sending flag be YES
+            cSending = YES;  // let sending flag be YES
 
             // Sending the first window of data
-            SENDER_AddAllPackages(windows, N, file_fd, &Sn);
+            SENDER_AddAllPackages(stWindows, N, file_fd, &Sn);
             printf("[SENDER(%d)] All packets are added into sending window.\n", stSenderParam.cThreadID);
             printf("[SENDER(%d)] Sending first window of data.\n", stSenderParam.cThreadID);
-            SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO, stSenderParam.cThreadID);
+            SENDER_Send_Packages(stWindows, N, nSocketFd, &ReceiverAddr, NO, stSenderParam.cThreadID);
         }
-        // Initialize timeout
-        timeout.tv_sec = RFTU_TIMEOUT;
-        timeout.tv_usec = 0;
+        // Initialize stTimeOut
+        stTimeOut.tv_sec = RFTU_TIMEOUT;
+        stTimeOut.tv_usec = 0;
 
         // Set up the set of descriptors
         FD_ZERO(&fds);  // Let the file descriptor set becomes all zero
-        FD_SET(socket_fd, &fds);  // Add the socket_fd to the set
+        FD_SET(nSocketFd, &fds);  // Add the nSocketFd to the set
 
         // Check time out using select() function
-        select_result = select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
-        if (select_result == -1) // Error
+        nSelectResult = select(FD_SETSIZE, &fds, NULL, NULL, &stTimeOut);
+        if (nSelectResult == -1) // Error
         {
             printf("[SENDER(%d)] ERROR: Error while waiting for packets\n", stSenderParam.cThreadID);
             printf("[SENDER(%d)] ERROR: %s\n\n", stSenderParam.cThreadID, strerror(errno));
-            free(windows);
-            close(socket_fd);
+            free(stWindows);
+            close(nSocketFd);
             return;
         }
-        else if (select_result == 0) // Time out
+        else if (nSelectResult == 0) // Time out
         {
-            error_cnt++;
-            if (error_cnt == RFTU_MAX_RETRY)
+            ucErrorCnt++;
+            if (ucErrorCnt == RFTU_MAX_RETRY)
             {
                 printf("[SENDER(%d)] ERROR: Over the limit of sending times\n", stSenderParam.cThreadID);
-                free(windows);
-                close(socket_fd);
+                free(stWindows);
+                close(nSocketFd);
                 return;
             }
-            if (sending == YES)
+            if (cSending == YES)
             {
-                SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, YES, stSenderParam.cThreadID);
+                SENDER_Send_Packages(stWindows, N, nSocketFd, &ReceiverAddr, YES, stSenderParam.cThreadID);
             }
         }
         else // received characters from fds
         {
-            recvfrom(socket_fd, &rftu_pkg_receive, sizeof(rftu_pkg_receive), 0, (struct sockaddr*)&receiver_addr, &socklen);
+            recvfrom(nSocketFd, &stRFTUPacketDataRecv, sizeof(stRFTUPacketDataRecv), 0, (struct sockaddr*)&ReceiverAddr, &socklen);
 
             // Switch the CMD fields in the received msg
-            switch(rftu_pkg_receive.cmd)
+            switch(stRFTUPacketDataRecv.ucCmd)
             {
                 case RFTU_CMD_ACK:
-                    if (sending == YES)
+                    if (cSending == YES)
                     {
-                        if (flag_verbose)
+                        if (ucFlagVerbose)
                         {
-                            printf("[SENDER(%d)] ACK sequence number received: %u\n", stSenderParam.cThreadID, rftu_pkg_receive.seq);
+                            printf("[SENDER(%d)] ACK sequence number received: %u\n", stSenderParam.cThreadID, stRFTUPacketDataRecv.unSeq);
                         }
                         // Set ACK flag for every packet received ACK
-                        SENDER_SetACKflag(windows, N, rftu_pkg_receive.seq);
-                        // Check seq = Sb + 1 in windows
-                        while((index_finded = SENDER_FindPacketseq(windows, N, Sb + 1)) != RFTU_RET_ERROR)
+                        SENDER_SetACKflag(stWindows, N, stRFTUPacketDataRecv.unSeq);
+                        // Check seq = Sb + 1 in stWindows
+                        while((nIndexFound = SENDER_FindPacketseq(stWindows, N, Sb + 1)) != RFTU_RET_ERROR)
                         {
                             Sb++;
-                            SENDER_Add_Package(windows, N, file_fd, &Sn, index_finded);
-                            SENDER_Send_Packages(windows, N, socket_fd, &receiver_addr, NO, stSenderParam.cThreadID);
-                            error_cnt = 0;
+                            SENDER_Add_Package(stWindows, N, file_fd, &Sn, nIndexFound);
+                            SENDER_Send_Packages(stWindows, N, nSocketFd, &ReceiverAddr, NO, stSenderParam.cThreadID);
+                            ucErrorCnt = 0;
                         }
                     }
                     break;
@@ -151,22 +151,22 @@ void* SENDER_Start(void *arg)
                 case RFTU_CMD_COMPLETED:
                     printf("[SENDER(%d)] File transfer completed.\n", stSenderParam.cThreadID);
                     printf("[SENDER(%d)] Total packets loss: %d\n", stSenderParam.cThreadID, number_pkt_loss);
-                    if (sending == YES)
+                    if (cSending == YES)
                     {
-                        free(windows);
+                        free(stWindows);
                         close(file_fd);
-                        close(socket_fd);
+                        close(nSocketFd);
                         return NULL;
                     }
                     break;
 
                 default:    // others
-                    if (error_cnt == RFTU_MAX_RETRY)
+                    if (ucErrorCnt == RFTU_MAX_RETRY)
                     {
                         printf("[SENDER(%d)] ERROR: Over the limit of sending times\n", stSenderParam.cThreadID);
-                        free(windows);
+                        free(stWindows);
                         close(file_fd);
-                        close(socket_fd);
+                        close(nSocketFd);
                         return;
                     }
                     break;
@@ -177,35 +177,35 @@ void* SENDER_Start(void *arg)
 
 
 // When a packet was sent and sender received ack, sent flag = 1 and ack flag = 1
-// Then this packet will be removed from windows, a new packet will be added to this position.
+// Then this packet will be removed from stWindows, a new packet will be added to this position.
 /**
  * [SENDER_SetACKflag description]
- * @param windows [description]
+ * @param stWindows [description]
  * @param N       [description]
  * @param seq     [description]
  */
 
-void SENDER_SetACKflag(struct windows_t *windows, unsigned char N, unsigned int seq)
+void SENDER_SetACKflag(struct g_stWindows *stWindows, unsigned char N, unsigned int seq)
 {
     /* find packet with sequence number = received sequence number and mark it as ACK returned */
     int i;
     for(i = 0; i < N; i++)
     {
-        if (windows[i].package.seq == seq)
+        if (stWindows[i].stRFTUPacketData.unSeq == seq)
         {
-            windows[i].ack = YES;
+            stWindows[i].ucAck = YES;
             return;
         }
     }
 }
 
-int SENDER_FindPacketseq(struct windows_t *windows, unsigned char N, unsigned int seq)
+int SENDER_FindPacketseq(struct g_stWindows *stWindows, unsigned char N, unsigned int seq)
 {
     /* find packet with sequence number = received sequence number and mark it as ACK returned */
     int i;
     for(i = 0; i < N; i++)
     {
-        if ((windows[i].package.seq == seq) && (windows[i].ack == YES))
+        if ((stWindows[i].stRFTUPacketData.unSeq == seq) && (stWindows[i].ucAck == YES))
         {
             return i;
         }
@@ -213,7 +213,7 @@ int SENDER_FindPacketseq(struct windows_t *windows, unsigned char N, unsigned in
     return RFTU_RET_ERROR;
 }
 
-void SENDER_AddAllPackages(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq)
+void SENDER_AddAllPackages(struct g_stWindows *stWindows, unsigned char N, int file_fd, unsigned int *seq)
 {
     int i;
     for(i = 0; i < N; i++)
@@ -221,53 +221,53 @@ void SENDER_AddAllPackages(struct windows_t *windows, unsigned char N, int file_
         /* Get size of packet using read() function
          * It returns the number of data bytes actually read,
          * which may be less than the number requested.*/
-        int size_of_packet = 0;
+        int nPacketSize = 0;
 
-        size_of_packet = read(file_fd, windows[i].package.data, RFTU_FRAME_SIZE);
+        nPacketSize = read(file_fd, stWindows[i].stRFTUPacketData.ucData, RFTU_FRAME_SIZE);
 
-        if(size_of_packet > 0)
+        if(nPacketSize > 0)
         {
-            windows[i].sent = NO;
-            windows[i].ack  = NO;
+            stWindows[i].ucSent = NO;
+            stWindows[i].ucAck  = NO;
 
-            windows[i].package.cmd      = RFTU_CMD_DATA;
-            windows[i].package.id       = rftu_id;
-            windows[i].package.seq      = *seq;
-            windows[i].package.size     = size_of_packet;
+            stWindows[i].stRFTUPacketData.ucCmd      = RFTU_CMD_DATA;
+            stWindows[i].stRFTUPacketData.ucID       = usRFTUid;
+            stWindows[i].stRFTUPacketData.unSeq      = *seq;
+            stWindows[i].stRFTUPacketData.usSize     = nPacketSize;
 
             (*seq)++;                   /* increase sequence number after add new packet*/
         }
     }
 }
 
-void SENDER_Add_Package(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq, int index_finded)
+void SENDER_Add_Package(struct g_stWindows *stWindows, unsigned char N, int file_fd, unsigned int *seq, int nIndexFound)
 {
     /* Get size of packet using read() function
      * It returns the number of data bytes actually read,
      * which may be less than the number requested.*/
-    int size_of_packet = 0;
+    int nPacketSize = 0;
 
-    size_of_packet = read(file_fd, windows[index_finded].package.data, RFTU_FRAME_SIZE);
+    nPacketSize = read(file_fd, stWindows[nIndexFound].stRFTUPacketData.ucData, RFTU_FRAME_SIZE);
 
-    if(size_of_packet > 0)
+    if(nPacketSize > 0)
     {
-        windows[index_finded].sent = NO;
-        windows[index_finded].ack  = NO;
+        stWindows[nIndexFound].ucSent = NO;
+        stWindows[nIndexFound].ucAck  = NO;
 
-        windows[index_finded].package.cmd      = RFTU_CMD_DATA;
-        windows[index_finded].package.id       = rftu_id;
-        windows[index_finded].package.seq      = *seq;
-        windows[index_finded].package.size     = size_of_packet;
+        stWindows[nIndexFound].stRFTUPacketData.ucCmd      = RFTU_CMD_DATA;
+        stWindows[nIndexFound].stRFTUPacketData.ucID       = usRFTUid;
+        stWindows[nIndexFound].stRFTUPacketData.unSeq      = *seq;
+        stWindows[nIndexFound].stRFTUPacketData.usSize     = nPacketSize;
 
         (*seq)++;                   /* increase sequence number after add new packet*/
     }
 }
 
 /* SENDER_Send_Packages() function.
- * all = NO : only send the packets with windows[i].sent = NO
- * all = YES: send all packets in the windows regardless of the value of windows[i].sent
+ * all = NO : only send the packets with stWindows[i].sent = NO
+ * all = YES: send all packets in the stWindows regardless of the value of stWindows[i].sent
  */
-void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all, char cThreadID)
+void SENDER_Send_Packages(struct g_stWindows *stWindows, unsigned char N, int nSocketFd, struct sockaddr_in *si_other, unsigned char all, char cThreadID)
 {
     int i;
     int pos_check = 0;   /* position check */
@@ -277,25 +277,25 @@ void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket
         /* if send flag = NO: send the packet
          * if ack flag = NO && all = YES: resend the packet
          */
-        if(windows[pos_check].sent == NO || (windows[pos_check].ack == NO && all == YES))
+        if(stWindows[pos_check].ucSent == NO || (stWindows[pos_check].ucAck == NO && all == YES))
         {
-            if(flag_verbose)
+            if(ucFlagVerbose)
             {
-                printf("[SENDER(%d)] Send DATA with sequence number: %u\n", cThreadID, windows[pos_check].package.seq);
+                printf("[SENDER(%d)] Send DATA with sequence number: %u\n", cThreadID, stWindows[pos_check].stRFTUPacketData.unSeq);
             }
 // DROPPER
-            if(flag_Packet_dropper == YES)
+            if(ucFlagPacketDrop == YES)
             {
-                if(rand() % (100 / Packet_loss_probability) == 0)
+                if(rand() % (100 / ucPacketLossRate) == 0)
                 {
-                    printf("[SENDER(%d)] Dropped packet with sequence number: %u\n", cThreadID, windows[pos_check].package.seq);
-                    windows[pos_check].sent = YES;
+                    printf("[SENDER(%d)] Dropped packet with sequence number: %u\n", cThreadID, stWindows[pos_check].stRFTUPacketData.unSeq);
+                    stWindows[pos_check].ucSent = YES;
                     number_pkt_loss++;
                     continue;
                 }
             }
-            sendto(socket_fd, &windows[pos_check].package, sizeof(struct rftu_packet_data_t), 0, (struct sockaddr *) si_other, (socklen_t) sizeof(*si_other));
-            windows[pos_check].sent = YES;
+            sendto(nSocketFd, &stWindows[pos_check].stRFTUPacketData, sizeof(struct g_stRFTUPacketData), 0, (struct sockaddr *) si_other, (socklen_t) sizeof(*si_other));
+            stWindows[pos_check].ucSent = YES;
         }
         pos_check++;
     }

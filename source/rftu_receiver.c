@@ -16,32 +16,32 @@ void* RECEIVER_Start(void* arg)
 {
     // Variables
     struct sockaddr_in sender_soc, receiver_soc;
-    int sd, fd; // socket descriptor and file descriptor
+    int nSocketFd; // socket file descriptor
 
-    struct rftu_packet_cmd_t  rftu_pkt_send_cmd;
-    struct rftu_packet_data_t rftu_pkt_rcv;
-    struct rftu_packet_data_t *rcv_buffer;
-    unsigned int *currentsize_rcv_buffer = (unsigned int *) calloc(1, sizeof(unsigned int));
+    struct g_stRFTUPacketCmd  stRFTUPacketCmdSend;
+    struct g_stRFTUPacketData stRFTUPacketDataRecv;
+    struct g_stRFTUPacketData *stRFTUPacketDataBuffer;
+    unsigned int *unRecvBufferSize = (unsigned int *) calloc(1, sizeof(unsigned int));
 
-    struct timeval timeout; // set time out
+    struct timeval stTimeOut; // set time out
 
-    char receiving = YES;
+    char cReceiving = YES;
     unsigned int Rn = 0;
-    unsigned long int received_bytes = 0;
+    unsigned long int ulReceivedBytes = 0;
 
     fd_set set;
-    int waiting;
+    int nWaiting;
 
-    unsigned int number_ACK_loss = 0;
+    unsigned int unAckLossNumber = 0;
 
-    unsigned char error_cnt = 0;
+    unsigned char ucErrorCnt = 0;
     socklen_t socklen = 0;
 
     struct g_stReceiverParam stReceiverParam = *(struct g_stReceiverParam *)arg;
-    rcv_buffer = (struct rftu_packet_data_t*) calloc(BUFFER_SIZE, sizeof(struct rftu_packet_data_t));
+    stRFTUPacketDataBuffer = (struct g_stRFTUPacketData*) calloc(BUFFER_SIZE, sizeof(struct g_stRFTUPacketData));
 
-    sd = socket(PF_INET, SOCK_DGRAM, 0); // socket DGRAM
-    if(sd == -1)
+    nSocketFd = socket(PF_INET, SOCK_DGRAM, 0); // socket DGRAM
+    if(nSocketFd == -1)
     {
         printf("[RECEIVER(%d)] Error to create socket\n", stReceiverParam.cThreadID);
         return;
@@ -54,46 +54,46 @@ void* RECEIVER_Start(void* arg)
 
     socklen = sizeof(sender_soc);
 
-    if (bind(sd, (struct sockaddr *)&receiver_soc, sizeof(receiver_soc)) != 0) // Create a socket for receiver
+    if (bind(nSocketFd, (struct sockaddr *)&receiver_soc, sizeof(receiver_soc)) != 0) // Create a socket for receiver
     {
         printf("[RECEIVER(%d)] Not binded\n", stReceiverParam.cThreadID);
-        close(sd);
+        close(nSocketFd);
         return;
     }
 
     printf("[RECEIVER(%d)] Initializing receiver\n", stReceiverParam.cThreadID);
 
     /*---START---*/
-    error_cnt = 0;
-    receiving = YES;
+    ucErrorCnt = 0;
+    cReceiving = YES;
     Rn = 0;
-    received_bytes = 0;
+    ulReceivedBytes = 0;
     lseek(stReceiverParam.fd, stReceiverParam.nFilePointerStart, SEEK_SET); // seek file pointer to offset corresponding position
     while(1)
     {
         //Set time out
-        timeout.tv_sec = RFTU_TIMEOUT;
-        timeout.tv_usec = 0;
+        stTimeOut.tv_sec = RFTU_TIMEOUT;
+        stTimeOut.tv_usec = 0;
 
         // Wait Packet
         FD_ZERO (&set);
-        FD_SET (sd, &set);
-        waiting = select(FD_SETSIZE, &set, NULL, NULL, &timeout);
-        switch(waiting)
+        FD_SET (nSocketFd, &set);
+        nWaiting = select(FD_SETSIZE, &set, NULL, NULL, &stTimeOut);
+        switch(nWaiting)
         {
             case 0: // time out
-                if(receiving == YES)
+                if(cReceiving == YES)
                 {
-                    error_cnt++;
-                    if (error_cnt == RFTU_MAX_RETRY)
+                    ucErrorCnt++;
+                    if (ucErrorCnt == RFTU_MAX_RETRY)
                     {
                         printf("Error: Connection\n\n");
 
-                        close(sd);
+                        close(nSocketFd);
                         printf("[RECEIVER(%d)] Waiting for next files...\n", stReceiverParam.cThreadID);
-                        receiving = NO;
+                        cReceiving = NO;
 
-                        error_cnt = 0;
+                        ucErrorCnt = 0;
                     }
                 }
                 break;
@@ -102,97 +102,97 @@ void* RECEIVER_Start(void* arg)
                 printf("[RECEIVER(%d)] ERROR: %s\n\n", stReceiverParam.cThreadID, strerror(errno));
                 break;
             default: // Read new packet
-                recvfrom(sd, &rftu_pkt_rcv, sizeof(rftu_pkt_rcv), 0, (struct sockaddr *)&sender_soc, &socklen);
+                recvfrom(nSocketFd, &stRFTUPacketDataRecv, sizeof(stRFTUPacketDataRecv), 0, (struct sockaddr *)&sender_soc, &socklen);
                 // check the commanders
-                switch(rftu_pkt_rcv.cmd)
+                switch(stRFTUPacketDataRecv.ucCmd)
                 {
                     case (RFTU_CMD_DATA):
-                        if (receiving == YES)
+                        if (cReceiving == YES)
                         {
-                            if (rftu_pkt_rcv.id == rftu_id)
+                            if (stRFTUPacketDataRecv.ucID == usRFTUid)
                             {
                                 // Resend ACK
-                                if ((RECEIVER_isSeqExistInBuffer(rcv_buffer, BUFFER_SIZE, rftu_pkt_rcv.seq, currentsize_rcv_buffer) == YES)
-                                        || (Rn > rftu_pkt_rcv.seq))
+                                if ((RECEIVER_isSeqExistInBuffer(stRFTUPacketDataBuffer, BUFFER_SIZE, stRFTUPacketDataRecv.unSeq, unRecvBufferSize) == YES)
+                                        || (Rn > stRFTUPacketDataRecv.unSeq))
                                 {
-                                    if(flag_verbose == YES)
+                                    if(ucFlagVerbose == YES)
                                     {
-                                        printf("[RECEIVER(%d)] Resend ACK seq: %d\n", stReceiverParam.cThreadID, rftu_pkt_rcv.seq);
+                                        printf("[RECEIVER(%d)] Resend ACK seq: %d\n", stReceiverParam.cThreadID, stRFTUPacketDataRecv.unSeq);
                                     }
-                                    error_cnt = 0;
-                                    rftu_pkt_send_cmd.cmd  = RFTU_CMD_ACK;
-                                    rftu_pkt_send_cmd.seq  = rftu_pkt_rcv.seq;
-                                    rftu_pkt_send_cmd.size = (received_bytes * 100 / stReceiverParam.nFileSize);
-                                    sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 , (struct sockaddr *) &sender_soc, socklen);
+                                    ucErrorCnt = 0;
+                                    stRFTUPacketCmdSend.ucCmd  = RFTU_CMD_ACK;
+                                    stRFTUPacketCmdSend.unSeq  = stRFTUPacketDataRecv.unSeq;
+                                    stRFTUPacketCmdSend.usSize = (ulReceivedBytes * 100 / stReceiverParam.nFileSize);
+                                    sendto(nSocketFd, &stRFTUPacketCmdSend, sizeof(stRFTUPacketCmdSend) , 0 , (struct sockaddr *) &sender_soc, socklen);
                                 }
                                 else
                                 {
-                                    if(RECEIVER_IsFullBuffer(currentsize_rcv_buffer) == NO)
+                                    if(RECEIVER_IsFullBuffer(unRecvBufferSize) == NO)
                                     {
-                                        if(flag_verbose == YES)
+                                        if(ucFlagVerbose == YES)
                                         {
-                                            printf("[RECEIVER(%d)] Received packet has sequence number = %d\n", stReceiverParam.cThreadID, rftu_pkt_rcv.seq);
+                                            printf("[RECEIVER(%d)] Received packet has sequence number = %d\n", stReceiverParam.cThreadID, stRFTUPacketDataRecv.unSeq);
                                         }
-                                        RECEIVER_InsertPacket(rcv_buffer, rftu_pkt_rcv, currentsize_rcv_buffer);
+                                        RECEIVER_InsertPacket(stRFTUPacketDataBuffer, stRFTUPacketDataRecv, unRecvBufferSize);
 // DROPPER
-                                        if(flag_ACK_dropper == YES)
+                                        if(ucFlagACKDrop == YES)
                                         {
-                                            if (rand() % (100 / ACK_loss_probability) == 0)
+                                            if (rand() % (100 / ucAckLossRate) == 0)
                                             {
-                                                if(flag_verbose == YES)
+                                                if(ucFlagVerbose == YES)
                                                 {
-                                                    printf("[RECEIVER(%d)] Dropped ACK seq: %u\n", stReceiverParam.cThreadID, rftu_pkt_rcv.seq);
+                                                    printf("[RECEIVER(%d)] Dropped ACK seq: %u\n", stReceiverParam.cThreadID, stRFTUPacketDataRecv.unSeq);
                                                 }
-                                                number_ACK_loss++;
+                                                unAckLossNumber++;
                                                 continue;
                                             }
                                         }
 
                                         // Send ACK
-                                        if(flag_verbose == YES)
+                                        if(ucFlagVerbose == YES)
                                         {
-                                            printf("[RECEIVER(%d)] Send ACK seq: %d\n", stReceiverParam.cThreadID, rftu_pkt_rcv.seq);
+                                            printf("[RECEIVER(%d)] Send ACK seq: %d\n", stReceiverParam.cThreadID, stRFTUPacketDataRecv.unSeq);
                                         }
-                                        error_cnt = 0;
-                                        rftu_pkt_send_cmd.cmd  = RFTU_CMD_ACK;
-                                        rftu_pkt_send_cmd.seq  = rftu_pkt_rcv.seq;
-                                        rftu_pkt_send_cmd.size = (received_bytes * 100 / stReceiverParam.nFileSize);
+                                        ucErrorCnt = 0;
+                                        stRFTUPacketCmdSend.ucCmd  = RFTU_CMD_ACK;
+                                        stRFTUPacketCmdSend.unSeq  = stRFTUPacketDataRecv.unSeq;
+                                        stRFTUPacketCmdSend.usSize = (ulReceivedBytes * 100 / stReceiverParam.nFileSize);
 
-                                        sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 , (struct sockaddr *) &sender_soc, socklen);
+                                        sendto(nSocketFd, &stRFTUPacketCmdSend, sizeof(stRFTUPacketCmdSend) , 0 , (struct sockaddr *) &sender_soc, socklen);
                                     }
 
-                                    while(rcv_buffer[0].seq == Rn)
+                                    while(stRFTUPacketDataBuffer[0].unSeq == Rn)
                                     {
-                                        if(flag_verbose == YES)
+                                        if(ucFlagVerbose == YES)
                                         {
-                                            printf("[RECEIVER(%d)] Writing packet had seq = %d\n", stReceiverParam.cThreadID, rcv_buffer[0].seq);
+                                            printf("[RECEIVER(%d)] Writing packet had seq = %d\n", stReceiverParam.cThreadID, stRFTUPacketDataBuffer[0].unSeq);
                                         }
-                                        write(stReceiverParam.fd, rcv_buffer[0].data, rcv_buffer[0].size);
-                                        received_bytes += rcv_buffer[0].size;
-                                        // printf("[RECEIVER(%d)] Got %lu bytes - %6.2f\n", stReceiverParam.cThreadID, received_bytes, (received_bytes * 100.0) / stReceiverParam.nFileSize);
-                                        RECEIVER_ResetBuffer(rcv_buffer, currentsize_rcv_buffer);
+                                        write(stReceiverParam.fd, stRFTUPacketDataBuffer[0].ucData, stRFTUPacketDataBuffer[0].usSize);
+                                        ulReceivedBytes += stRFTUPacketDataBuffer[0].usSize;
+                                        // printf("[RECEIVER(%d)] Got %lu bytes - %6.2f\n", stReceiverParam.cThreadID, ulReceivedBytes, (ulReceivedBytes * 100.0) / stReceiverParam.nFileSize);
+                                        RECEIVER_ResetBuffer(stRFTUPacketDataBuffer, unRecvBufferSize);
                                         Rn++;
-                                        error_cnt = 0;
+                                        ucErrorCnt = 0;
 
                                         // When received file completly
-                                        if (received_bytes == stReceiverParam.nFileSize)
+                                        if (ulReceivedBytes == stReceiverParam.nFileSize)
                                         {
                                             printf("[RECEIVER(%d)] Sending COMPLETED cmd\n", stReceiverParam.cThreadID);
 
                                             // send complete command
-                                            rftu_pkt_send_cmd.cmd  = RFTU_CMD_COMPLETED;
-                                            rftu_pkt_send_cmd.id   = rftu_id;
-                                            rftu_pkt_send_cmd.seq  = Rn;
-                                            rftu_pkt_send_cmd.size = (received_bytes * 100 / stReceiverParam.nFileSize);
+                                            stRFTUPacketCmdSend.ucCmd  = RFTU_CMD_COMPLETED;
+                                            stRFTUPacketCmdSend.ucID   = usRFTUid;
+                                            stRFTUPacketCmdSend.unSeq  = Rn;
+                                            stRFTUPacketCmdSend.usSize = (ulReceivedBytes * 100 / stReceiverParam.nFileSize);
 
-                                            sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 ,
+                                            sendto(nSocketFd, &stRFTUPacketCmdSend, sizeof(stRFTUPacketCmdSend) , 0 ,
                                                     (struct sockaddr *) &sender_soc, socklen);
                                             printf("[RECEIVER(%d)] File receiving completed\n", stReceiverParam.cThreadID);
                                             /* printf("[RECEIVER(%d)] Saved file to : %s\n\n", path); */
-                                            printf("[RECEIVER(%d)] Total ACK loss: %d\n", stReceiverParam.cThreadID, number_ACK_loss);
+                                            printf("[RECEIVER(%d)] Total ACK loss: %d\n", stReceiverParam.cThreadID, unAckLossNumber);
                                             // dont get any DATA segment
-                                            receiving = NO;
-                                            close(sd);
+                                            cReceiving = NO;
+                                            close(nSocketFd);
                                             return NULL;
                                         }
                                     }
@@ -200,24 +200,24 @@ void* RECEIVER_Start(void* arg)
                             }
                             else
                             {
-                                printf("[RECEIVER(%d)] Unknown ID: %i\n", stReceiverParam.cThreadID, rftu_pkt_rcv.id);
+                                printf("[RECEIVER(%d)] Unknown ID: %i\n", stReceiverParam.cThreadID, stRFTUPacketDataRecv.ucID);
                             }
                         }
                         break;
                     default:
-                        printf("[RECEIVER(%d)] Unknown command %u\n", stReceiverParam.cThreadID, rftu_pkt_rcv.cmd);
+                        printf("[RECEIVER(%d)] Unknown command %u\n", stReceiverParam.cThreadID, stRFTUPacketDataRecv.ucCmd);
                         break;
                 }
         }
     }
 }
 
-int RECEIVER_isSeqExistInBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int BUFFER_SIZE, unsigned int seq, unsigned int *currentsize_rcv_buffer)
+int RECEIVER_isSeqExistInBuffer(struct g_stRFTUPacketData *stRFTUPacketDataBuffer, unsigned int BUFFER_SIZE, unsigned int seq, unsigned int *unRecvBufferSize)
 {
     int i;
-    for (i = 0; i < *currentsize_rcv_buffer; i++)
+    for (i = 0; i < *unRecvBufferSize; i++)
     {
-        if(rcv_buffer[i].seq == seq)
+        if(stRFTUPacketDataBuffer[i].unSeq == seq)
         {
             return YES;
         }
@@ -226,53 +226,53 @@ int RECEIVER_isSeqExistInBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned 
 }
 
 
-void RECEIVER_InsertPacket(struct rftu_packet_data_t *rcv_buffer, struct rftu_packet_data_t rftu_pkt_rcv, unsigned int *currentsize_rcv_buffer)
+void RECEIVER_InsertPacket(struct g_stRFTUPacketData *stRFTUPacketDataBuffer, struct g_stRFTUPacketData stRFTUPacketDataRecv, unsigned int *unRecvBufferSize)
 {
     int i, k;
 
-    if(RECEIVER_IsEmptyBuffer(*currentsize_rcv_buffer) == YES)
+    if(RECEIVER_IsEmptyBuffer(*unRecvBufferSize) == YES)
     {
-        rcv_buffer[0] = rftu_pkt_rcv;
-        (*currentsize_rcv_buffer)++;
+        stRFTUPacketDataBuffer[0] = stRFTUPacketDataRecv;
+        (*unRecvBufferSize)++;
     }
     else
     {
-        (*currentsize_rcv_buffer)++;
-        for (i = 0; i < (*currentsize_rcv_buffer) - 1; i++)
+        (*unRecvBufferSize)++;
+        for (i = 0; i < (*unRecvBufferSize) - 1; i++)
         {
-            if(rcv_buffer[i].seq > rftu_pkt_rcv.seq)
+            if(stRFTUPacketDataBuffer[i].unSeq > stRFTUPacketDataRecv.unSeq)
             {
-                for(k = (*currentsize_rcv_buffer) - 1; k > i; k--)
+                for(k = (*unRecvBufferSize) - 1; k > i; k--)
                 {
-                    rcv_buffer[k] = rcv_buffer[k-1];
+                    stRFTUPacketDataBuffer[k] = stRFTUPacketDataBuffer[k-1];
                 }
-                rcv_buffer[i] = rftu_pkt_rcv;
+                stRFTUPacketDataBuffer[i] = stRFTUPacketDataRecv;
                 return;
             }
         }
         // if its seq is max, add it in the end of current buffer
-        rcv_buffer[i] = rftu_pkt_rcv;
+        stRFTUPacketDataBuffer[i] = stRFTUPacketDataRecv;
     }
 }
 
-int RECEIVER_IsFullBuffer(unsigned int *currentsize_rcv_buffer)
+int RECEIVER_IsFullBuffer(unsigned int *unRecvBufferSize)
 {
-    return (*currentsize_rcv_buffer == BUFFER_SIZE) ? YES : NO;
+    return (*unRecvBufferSize == BUFFER_SIZE) ? YES : NO;
 }
 
-int RECEIVER_IsEmptyBuffer(unsigned int currentsize_rcv_buffer)
+int RECEIVER_IsEmptyBuffer(unsigned int unRecvBufferSize)
 {
-    return (currentsize_rcv_buffer == 0) ? YES : NO;
+    return (unRecvBufferSize == 0) ? YES : NO;
 }
 
-void RECEIVER_ResetBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int *currentsize_rcv_buffer)
+void RECEIVER_ResetBuffer(struct g_stRFTUPacketData *stRFTUPacketDataBuffer, unsigned int *unRecvBufferSize)
 {
     int i;
-    (*currentsize_rcv_buffer)--;
+    (*unRecvBufferSize)--;
 
-    for (i = 0; i < *currentsize_rcv_buffer; i++)
+    for (i = 0; i < *unRecvBufferSize; i++)
     {
-        rcv_buffer[i] = rcv_buffer[i + 1];
+        stRFTUPacketDataBuffer[i] = stRFTUPacketDataBuffer[i + 1];
     }
 
 }

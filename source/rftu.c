@@ -10,18 +10,18 @@
 #include "rftu.h"
 /*Defined*/
 
-unsigned char flag_verbose = NO;
-unsigned char flag_server = NO;
-unsigned char flag_file_ok = NO;
-unsigned char flag_ip_ok = NO;
-unsigned char flag_ACK_dropper = NO;
-unsigned char flag_Packet_dropper = NO;
+unsigned char ucFlagVerbose = NO;
+unsigned char ucFlagServer = NO;
+unsigned char ucFlagFile = NO;
+unsigned char ucFlagIP = NO;
+unsigned char ucFlagACKDrop = NO;
+unsigned char ucFlagPacketDrop = NO;
 
-unsigned char ACK_loss_probability;
-unsigned char Packet_loss_probability;
+unsigned char ucAckLossRate;
+unsigned char ucPacketLossRate;
 
-char    rftu_filename[256];
-char    rftu_ip[20];
+char    cRFTUFileName[256];
+char    cRFTUIP[20];
 
 static int option;
 int main(int argc, char *argv[])
@@ -33,9 +33,9 @@ int main(int argc, char *argv[])
             case 'f':
                 if(MAIN_check_file_exist(optarg) == YES)
                 {
-                    flag_file_ok = YES;
-                    memset(rftu_filename, '\0', strlen(rftu_filename));
-                    strcpy(rftu_filename, optarg);
+                    ucFlagFile = YES;
+                    memset(cRFTUFileName, '\0', strlen(cRFTUFileName));
+                    strcpy(cRFTUFileName, optarg);
                 }
                 else
                 {
@@ -47,9 +47,9 @@ int main(int argc, char *argv[])
             case 't':
                 if(MAIN_check_ip(optarg) == YES)
                 {
-                    flag_ip_ok = YES;
-                    memset(rftu_ip, '\0', strlen(rftu_ip));
-                    strcpy(rftu_ip, optarg);
+                    ucFlagIP = YES;
+                    memset(cRFTUIP, '\0', strlen(cRFTUIP));
+                    strcpy(cRFTUIP, optarg);
                 }
                 else
                 {
@@ -59,24 +59,24 @@ int main(int argc, char *argv[])
                 }
                 break;
             case 's':
-                flag_server = YES;
+                ucFlagServer = YES;
                 break;
             case 'e':
-                if(flag_server == YES)
+                if(ucFlagServer == YES)
                 {
-                    flag_ACK_dropper = YES;
-                    ACK_loss_probability = (unsigned char) atoi(optarg);
-                    printf("ACK_loss_probability = %d\n", ACK_loss_probability);
+                    ucFlagACKDrop = YES;
+                    ucAckLossRate = (unsigned char) atoi(optarg);
+                    printf("ucAckLossRate = %d\n", ucAckLossRate);
                 }
                 else
                 {
-                    flag_Packet_dropper = YES;
-                    Packet_loss_probability = (unsigned char) atoi(optarg);
-                    printf("Packet_loss_probability = %d\n", Packet_loss_probability);
+                    ucFlagPacketDrop = YES;
+                    ucPacketLossRate = (unsigned char) atoi(optarg);
+                    printf("ucPacketLossRate = %d\n", ucPacketLossRate);
                 }
                 break;
             case 'v':
-                flag_verbose = YES;
+                ucFlagVerbose = YES;
                 break;
             case 'h':
                 MAIN_disp_help();
@@ -87,14 +87,14 @@ int main(int argc, char *argv[])
         }
     }
 
-    if((flag_file_ok == YES) && (flag_ip_ok == YES))
+    if((ucFlagFile == YES) && (ucFlagIP == YES))
     {
-        printf("[RFTU] Verbose Mode: %s\n", (flag_verbose   == YES ? "ON" : "OFF"));
-        printf("[RFTU] Destination IP: %s\n\n", rftu_ip);
+        printf("[RFTU] Verbose Mode: %s\n", (ucFlagVerbose   == YES ? "ON" : "OFF"));
+        printf("[RFTU] Destination IP: %s\n\n", cRFTUIP);
         SENDER_Main();
     }
 
-    if(flag_server == YES)
+    if(ucFlagServer == YES)
     {
         RECEIVER_Main();
     }
@@ -140,10 +140,10 @@ void MAIN_disp_help(void)
         -----------------------------------------------------------------\n\
         \n\
         Firstly, the receiver is initialized by command:\n\
-        rftu -s [-e ACK_loss_probability] [-v]\n\n\
+        rftu -s [-e ucAckLossRate] [-v]\n\n\
         \n\
         Secondly, the sender is initialized by command:\n\
-        rftu -f /path/filename -t destination [-e Packet_loss_probability] [-v]\n\n\
+        rftu -f /path/filename -t destination [-e ucPacketLossRate] [-v]\n\n\
         -----------------------------------------------------------------\n\
         -----------------------------------------------------------------\n\
         \n\

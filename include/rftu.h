@@ -54,41 +54,41 @@
 #define THREAD_NUMBER       8
 
 // RFTU Control Flags
-extern unsigned char flag_server;
-extern unsigned char flag_verbose;
-extern unsigned char flag_file_ok;
-extern unsigned char flag_ip_ok;
-extern unsigned char flag_ACK_dropper;
-extern unsigned char flag_Packet_dropper;
+extern unsigned char ucFlagServer;
+extern unsigned char ucFlagVerbose;
+extern unsigned char ucFlagFile;
+extern unsigned char ucFlagIP;
+extern unsigned char ucFlagACKDrop;
+extern unsigned char ucFlagPacketDrop;
 
 // RFTU Data Package
-struct rftu_packet_data_t {
-	unsigned char 	cmd;						/* if cmd = DATA or INIT, size and data is available */
-	unsigned char 	id;
-	unsigned int  	seq;
-	unsigned short 	size;
-	unsigned char 	data[RFTU_FRAME_SIZE];
+struct g_stRFTUPacketData {
+	unsigned char 	ucCmd;						/* if cmd = DATA or INIT, size and data is available */
+	unsigned char 	ucID;
+	unsigned int  	unSeq;
+	unsigned short 	usSize;
+	unsigned char 	ucData[RFTU_FRAME_SIZE];
 };
 
 // RFTU Command Package
-struct rftu_packet_cmd_t {
-	unsigned char 	cmd;
-	unsigned char 	id;
-	unsigned int  	seq;
-	unsigned short 	size;
+struct g_stRFTUPacketCmd {
+	unsigned char 	ucCmd;
+	unsigned char 	ucID;
+	unsigned int  	unSeq;
+	unsigned short 	usSize;
 };
 
 // RFTU File Info
-struct file_info_t {
-	char 				filename[256];
-	unsigned long int  	filesize;
+struct g_stFileInfo {
+	char 				cFileName[256];
+	unsigned long int  	ulFileSize;
 };
 
 // RFTU window
-struct windows_t {
-	unsigned char sent;
-	unsigned char ack;
-	struct rftu_packet_data_t package;
+struct g_stWindows {
+	unsigned char ucSent;
+	unsigned char ucAck;
+	struct g_stRFTUPacketData stRFTUPacketData;
 };
 
 struct g_stSenderParam {
@@ -113,12 +113,12 @@ struct g_stPortInfo {
 };
 
 // RFTU Global Variables
-extern char 				rftu_filename[256];
-extern unsigned long int  	rftu_filesize;
-extern char 				rftu_ip[20];
-extern unsigned short 		rftu_id;
-extern unsigned char ACK_loss_probability;
-extern unsigned char Packet_loss_probability;
+extern char 				cRFTUFileName[256];
+extern unsigned long int  	ulRFTUFileSize;
+extern char 				cRFTUIP[20];
+extern unsigned short 		usRFTUid;
+extern unsigned char        ucAckLossRate;
+extern unsigned char        ucPacketLossRate;
 
 
 /*-----------------------------*/
@@ -137,22 +137,21 @@ unsigned long int SENDER_Get_Filesize(char *path);
 
 // Sender functions - in rftu_sender.c
 void* SENDER_Start(void* arg);
-void SENDER_AddAllPackages(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq);
-void SENDER_Add_Package(struct windows_t *windows, unsigned char N, int file_fd, unsigned int *seq, int index_finded);
-void SENDER_Send_Packages(struct windows_t *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all, char cThreadID);
-void SENDER_SetACKflag(struct windows_t *windows, unsigned char N, unsigned int seq);
-int SENDER_FindPacketseq(struct windows_t *windows, unsigned char N, unsigned int seq);
+void SENDER_AddAllPackages(struct g_stWindows *windows, unsigned char N, int file_fd, unsigned int *seq);
+void SENDER_Add_Package(struct g_stWindows *windows, unsigned char N, int file_fd, unsigned int *seq, int index_finded);
+void SENDER_Send_Packages(struct g_stWindows *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all, char cThreadID);
+void SENDER_SetACKflag(struct g_stWindows *windows, unsigned char N, unsigned int seq);
+int SENDER_FindPacketseq(struct g_stWindows *windows, unsigned char N, unsigned int seq);
 
 // Receiver Main functions - in mainReceiver.c
 unsigned char RECEIVER_Main(void);
 
 // Receiver functions - in rftu_receiver.c
 void* RECEIVER_Start(void* arg);
-int RECEIVER_isSeqExistInBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int BUFFER_SIZE, unsigned int seq, unsigned int *currentsize_rcv_buffer);
-void RECEIVER_InsertPacket(struct rftu_packet_data_t *rcv_buffer, struct rftu_packet_data_t rftu_pkt_rcv, unsigned int *currentsize_rcv_buffer);
-void RECEIVER_RemovePacket(struct rftu_packet_data_t *rcv_buffer, int BUFFER_SIZE, struct rftu_packet_data_t rftu_pkt_rcv, unsigned int *currentsize_rcv_buffer);
-int RECEIVER_IsFullBuffer(unsigned int *currentsize_rcv_buffer);
-void RECEIVER_ResetBuffer(struct rftu_packet_data_t *rcv_buffer, unsigned int *currentsize_rcv_buffer);
-int RECEIVER_IsEmptyBuffer(unsigned int currentsize_rcv_buffer);
+int RECEIVER_isSeqExistInBuffer(struct g_stRFTUPacketData *stRFTUPacketDataBuffer, unsigned int BUFFER_SIZE, unsigned int seq, unsigned int *unRecvBufferSize);
+void RECEIVER_InsertPacket(struct g_stRFTUPacketData *rcv_buffer, struct g_stRFTUPacketData rftu_pkt_rcv, unsigned int *unRecvBufferSize);
+int RECEIVER_IsFullBuffer(unsigned int *unRecvBufferSize);
+void RECEIVER_ResetBuffer(struct g_stRFTUPacketData *stRFTUPacketDataBuffer, unsigned int *unRecvBufferSize);
+int RECEIVER_IsEmptyBuffer(unsigned int unRecvBufferSize);
 
 #endif

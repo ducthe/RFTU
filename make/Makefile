@@ -1,5 +1,5 @@
 MAKE_DIR = $(shell pwd)
-WORK_DIR = $(MAKE_DIR)/../
+WORK_DIR = $(MAKE_DIR)/..
 SRC_DIR = $(WORK_DIR)/source
 INCLUDE_DIR = $(WORK_DIR)/include
 P_THREAD = -pthread
