@@ -8,7 +8,6 @@
 
 char path[255] = "/";
 struct sockaddr_in sender_soc, receiver_soc;
-int sd, fd; // socket descriptor and file descriptor
 
 struct file_info_t file_info; // File transfered
 struct rftu_packet_cmd_t  rftu_pkt_send_cmd;
@@ -19,17 +18,20 @@ fd_set set;
 int waiting;
 unsigned short rftu_id;
 unsigned long int   rftu_filesize;
+unsigned long int *fpoint;
 unsigned long int *fsize;
 
-pthread_t pth[2];
+pthread_t pth[8];
 int thread_index;
-struct g_stReceiverParam stReceiverParam[2];
+struct g_stReceiverParam stReceiverParam[8];
 
 unsigned char RECEIVER_Main(void)
 {
     unsigned char error_cnt = 0;
-    int sd, fd1, fd2; // socket descriptor and file descriptor
+    int sd; // socket descriptor
+    int fd[THREAD_NUMBER];
     socklen_t socklen = 0;
+    int i;
 
     sd = socket(PF_INET, SOCK_DGRAM, 0); // socket DGRAM
     if(sd == -1)
@@ -63,7 +65,7 @@ unsigned char RECEIVER_Main(void)
         FD_ZERO (&set);
         FD_SET (sd, &set);
         waiting = select(FD_SETSIZE, &set, NULL, NULL,
-                            &timeout);
+                &timeout);
         switch(waiting)
         {
             case 0:  // time out
@@ -90,19 +92,22 @@ unsigned char RECEIVER_Main(void)
                         printf("[RECEIVER Main] File info:\n File name : %s, Filesize: %ld bytes \n", file_info.filename, file_info.filesize);
                         rftu_filesize = file_info.filesize;
 
-                        // Divide original file to part 
-                        fsize = (unsigned long int *)malloc(2*sizeof(unsigned long int));
-                        MAIN_div_file(rftu_filesize, fsize);
+                        // Divide original file to parts
+                        fsize = (unsigned long int *)malloc(8*sizeof(unsigned long int));
+                        fpoint = (unsigned long int *)malloc(8*sizeof(unsigned long int));
+                        MAIN_div_file(rftu_filesize, fsize, fpoint);
 
                         // Create the file to save
                         strcpy(path,"/home/");
                         strcat(path, getlogin());
                         strcat(path, "/Desktop/");
                         strcat(path, file_info.filename);
-                        
-                        fd1 = open(path, O_CREAT | O_WRONLY, 0666);
-                        fd2 = open(path, O_CREAT | O_WRONLY, 0666);
-                        if (fd1 < 0 && fd2 < 0)
+
+                        for (i = 0; i < THREAD_NUMBER;  i++)
+                        {
+                            fd[i]= open(path, O_CREAT | O_WRONLY, 0666);
+                        }
+                        if (fd[0] < 0 && fd[1] < 0 && fd[2] < 0 && fd[3] < 0 && fd[4] < 0 && fd[5] < 0 && fd[6] < 0 && fd[7] < 0)
                         {
                             printf("[RECEIVER Main] There is nospace, cannot create the file\n");
                             // Send command NOSPACE to sender
@@ -119,35 +124,88 @@ unsigned char RECEIVER_Main(void)
                             printf("READY cmd.id: %d\n", rftu_id );
                             sendto(sd, &rftu_pkt_send_cmd, sizeof(rftu_pkt_send_cmd) , 0 , (struct sockaddr *) &sender_soc, socklen);
 
-                            // Param for thread 1
-                            stReceiverParam[0].nPortNumber = RFTU_PORT_1;
-                            stReceiverParam[0].fd = fd1;
-                            stReceiverParam[0].nFilePointerStart = 0;
+                            // Param for thread 0
+                            stReceiverParam[0].nPortNumber = RFTU_PORT_0;
+                            stReceiverParam[0].fd = fd[0];
+                            stReceiverParam[0].nFilePointerStart = *(fpoint + 0);
                             stReceiverParam[0].nFileSize = *(fsize + 0);
                             stReceiverParam[0].cThreadID = 0;
 
-                            // Param for thread 2
-                            stReceiverParam[1].nPortNumber = RFTU_PORT_2;
-                            stReceiverParam[1].fd = fd2;
-                            stReceiverParam[1].nFilePointerStart = *(fsize + 0);
+                            // Param for thread 1
+                            stReceiverParam[1].nPortNumber = RFTU_PORT_1;
+                            stReceiverParam[1].fd = fd[1];
+                            stReceiverParam[1].nFilePointerStart = *(fpoint + 1);
                             stReceiverParam[1].nFileSize = *(fsize + 1);
                             stReceiverParam[1].cThreadID = 1;
 
+                            // Param for thread 2
+                            stReceiverParam[2].nPortNumber = RFTU_PORT_2;
+                            stReceiverParam[2].fd = fd[2];
+                            stReceiverParam[2].nFilePointerStart = *(fpoint + 2);
+                            stReceiverParam[2].nFileSize = *(fsize + 2);
+                            stReceiverParam[2].cThreadID = 2;
+
+                            // Param for thread 3
+                            stReceiverParam[3].nPortNumber = RFTU_PORT_3;
+                            stReceiverParam[3].fd = fd[3];
+                            stReceiverParam[3].nFilePointerStart = *(fpoint + 3);
+                            stReceiverParam[3].nFileSize = *(fsize + 3);
+                            stReceiverParam[3].cThreadID = 3;
+
+                            // Param for thread 4
+                            stReceiverParam[4].nPortNumber = RFTU_PORT_4;
+                            stReceiverParam[4].fd = fd[4];
+                            stReceiverParam[4].nFilePointerStart = *(fpoint + 4);
+                            stReceiverParam[4].nFileSize = *(fsize + 4);
+                            stReceiverParam[4].cThreadID = 4;
+
+                            // Param for thread 5
+                            stReceiverParam[5].nPortNumber = RFTU_PORT_5;
+                            stReceiverParam[5].fd = fd[5];
+                            stReceiverParam[5].nFilePointerStart = *(fpoint + 5);
+                            stReceiverParam[5].nFileSize = *(fsize + 5);
+                            stReceiverParam[5].cThreadID = 5;
+
+                            // Param for thread 6
+                            stReceiverParam[6].nPortNumber = RFTU_PORT_6;
+                            stReceiverParam[6].fd = fd[6];
+                            stReceiverParam[6].nFilePointerStart = *(fpoint + 6);
+                            stReceiverParam[6].nFileSize = *(fsize + 6);
+                            stReceiverParam[6].cThreadID = 6;
+
+                            // Param for thread 7
+                            stReceiverParam[7].nPortNumber = RFTU_PORT_7;
+                            stReceiverParam[7].fd = fd[7];
+                            stReceiverParam[7].nFilePointerStart = *(fpoint + 7);
+                            stReceiverParam[7].nFileSize = *(fsize + 7);
+                            stReceiverParam[7].cThreadID = 7;
+
                             // Thread creation
                             {
-                                int m, n;
-                                // m = pthread_create(&pth, NULL, &RECEIVER_Start, (void*)&stReceiverParam);
+                                int a, b, c, d, e, f, g, h;
+                                a = pthread_create(&pth[0], NULL, &RECEIVER_Start, (void*)&stReceiverParam[0]);
+                                b = pthread_create(&pth[1], NULL, &RECEIVER_Start, (void*)&stReceiverParam[1]);
+                                c = pthread_create(&pth[2], NULL, &RECEIVER_Start, (void*)&stReceiverParam[2]);
+                                d = pthread_create(&pth[3], NULL, &RECEIVER_Start, (void*)&stReceiverParam[3]);
+                                e = pthread_create(&pth[4], NULL, &RECEIVER_Start, (void*)&stReceiverParam[4]);
+                                f = pthread_create(&pth[5], NULL, &RECEIVER_Start, (void*)&stReceiverParam[5]);
+                                g = pthread_create(&pth[6], NULL, &RECEIVER_Start, (void*)&stReceiverParam[6]);
+                                h = pthread_create(&pth[7], NULL, &RECEIVER_Start, (void*)&stReceiverParam[7]);
 
-                                m = pthread_create(&pth[0], NULL, &RECEIVER_Start, (void*)&stReceiverParam[0]);
-                                n = pthread_create(&pth[1], NULL, &RECEIVER_Start, (void*)&stReceiverParam[1]);
-
-                                if (!m && !n) {
+                                if (!a && !b && !c && !d && !e && !f && !g && !h)
+                                {
                                     if(flag_verbose == YES)
                                     {
                                         printf("[RECEIVER Main] Thread Created.\n");
                                     }
                                     pthread_join(pth[0], NULL);
                                     pthread_join(pth[1], NULL);
+                                    pthread_join(pth[2], NULL);
+                                    pthread_join(pth[3], NULL);
+                                    pthread_join(pth[4], NULL);
+                                    pthread_join(pth[5], NULL);
+                                    pthread_join(pth[6], NULL);
+                                    pthread_join(pth[7], NULL);
                                     if(flag_verbose == YES)
                                     {
                                         printf("[RECEIVER Main] Thread function are terminated.\n");
@@ -161,8 +219,10 @@ unsigned char RECEIVER_Main(void)
                                     }
                                 }
                             }
-                            close(fd1);
-                            close(fd2);
+                            for (i = 0; i < THREAD_NUMBER; i++)
+                            {
+                                close(fd[i]);
+                            }
                             printf("[RECEIVER Main] Waiting for next files...\n");
                         }
                         break;

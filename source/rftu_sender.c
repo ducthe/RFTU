@@ -101,7 +101,7 @@ void* SENDER_Start(void *arg)
         if (select_result == -1) // Error
         {
             printf("[SENDER(%d)] ERROR: Error while waiting for packets\n", stSenderParam.cThreadID);
-            printf("[SENDER(%d)] ERROR: %s", stSenderParam.cThreadID, strerror(errno));
+            printf("[SENDER(%d)] ERROR: %s\n\n", stSenderParam.cThreadID, strerror(errno));
             free(windows);
             close(socket_fd);
             return;

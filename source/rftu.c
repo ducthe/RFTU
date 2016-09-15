@@ -154,12 +154,33 @@ void MAIN_disp_help(void)
         -e: Set ACK or packet loss");
 }
 
-void MAIN_div_file(unsigned long int filesize, unsigned long int *fsize)
+void MAIN_div_file(unsigned long int filesize, unsigned long int *fsize, unsigned long int *fpoint)
 {
     unsigned long int n;
     n = filesize/RFTU_FRAME_SIZE;
-    n = n/4*RFTU_FRAME_SIZE;
+    n = n/16*RFTU_FRAME_SIZE;
 
+    *(fpoint + 0) = 0;
     *(fsize + 0) = n;
-    *(fsize + 1) = filesize - n;
+
+    *(fpoint + 1) = n;
+    *(fsize + 1) = n;
+
+    *(fpoint + 2) = 2*n;
+    *(fsize + 2) = n;
+
+    *(fpoint + 3) = 3*n;
+    *(fsize + 3) = n;
+
+    *(fpoint + 4) = n*4;
+    *(fsize + 4) = n*2;
+
+    *(fpoint + 5) = n*6;
+    *(fsize + 5) = n*2;
+
+    *(fpoint + 6) = n*8;
+    *(fsize + 6) = n*4;
+
+    *(fpoint + 7) = n*12;
+    *(fsize + 7) = filesize - (n*12);
 }

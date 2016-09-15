@@ -12,7 +12,6 @@
 
 unsigned int BUFFER_SIZE = 20;
 
-
 void* RECEIVER_Start(void* arg)
 {
     // Variables
@@ -100,7 +99,7 @@ void* RECEIVER_Start(void* arg)
                 break;
             case -1: // have an error
                 printf("[RECEIVER(%d)] ERROR: Error while waiting for DATA packets \n", stReceiverParam.cThreadID);
-                printf("[RECEIVER(%d)] ERROR: %s", stReceiverParam.cThreadID, strerror(errno));
+                printf("[RECEIVER(%d)] ERROR: %s\n\n", stReceiverParam.cThreadID, strerror(errno));
                 break;
             default: // Read new packet
                 recvfrom(sd, &rftu_pkt_rcv, sizeof(rftu_pkt_rcv), 0, (struct sockaddr *)&sender_soc, &socklen);
@@ -201,7 +200,7 @@ void* RECEIVER_Start(void* arg)
                             }
                             else
                             {
-                                printf("[RECEIVER(%d)] Unknown ID: %i\n", rftu_pkt_rcv.id, stReceiverParam.cThreadID);
+                                printf("[RECEIVER(%d)] Unknown ID: %i\n", stReceiverParam.cThreadID, rftu_pkt_rcv.id);
                             }
                         }
                         break;

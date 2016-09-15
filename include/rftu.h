@@ -51,16 +51,15 @@
 #define RFTU_MAX_RETRY		10
 #define RFTU_WINDOW_SIZE	8
 
-// #define RFTU_PORT           8888
-#define THREAD_NUMBER       2
-#define RFTU_PORT_1         8881
-#define RFTU_PORT_2         8882
-// #define RFTU_PORT_3         8883
-// #define RFTU_PORT_4         8884
-// #define RFTU_PORT_5         8885
-// #define RFTU_PORT_6         8886
-// #define RFTU_PORT_7         8887
-// #define RFTU_PORT_8		   8888
+#define THREAD_NUMBER       8
+#define RFTU_PORT_0         8881
+#define RFTU_PORT_1         8882
+#define RFTU_PORT_2         8883
+#define RFTU_PORT_3         8884
+#define RFTU_PORT_4         8885
+#define RFTU_PORT_5         8886
+#define RFTU_PORT_6         8887
+#define RFTU_PORT_7		    8888
 
 // RFTU Control Flags
 extern unsigned char flag_server;
@@ -137,7 +136,7 @@ extern unsigned char Packet_loss_probability;
 void 			MAIN_disp_help(void);
 unsigned char 	MAIN_check_ip(char *ip);
 unsigned char 	MAIN_check_file_exist(char *path);
-void 			MAIN_div_file(unsigned long int filesize, unsigned long int *fsize);
+void 			MAIN_div_file(unsigned long int filesize, unsigned long int *fsize, unsigned long int *fpoint);
 
 // Sender Main functions - in mainSender.c
 unsigned char SENDER_Main(void);
