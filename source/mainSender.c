@@ -131,34 +131,10 @@ unsigned char SENDER_Main(void)
                     for(i = 0; i < stPortInfoReceive.ucNumberOfPort; i++)
                     {
                         stSenderParam[i].nPortNumber = stPortInfoReceive.nPortNumber[i];
+                        stSenderParam[i].unWindowSize = RFTU_WINDOW_SIZE;
                         stSenderParam[i].nFilePointerStart = *(ulFPoint + i);
                         stSenderParam[i].nFileSize = *(ulFSize + i);
                         stSenderParam[i].cThreadID = i;
-                        switch(i)
-                        {
-                            case 0:
-                                stSenderParam[i].unWindowSize = 8*RFTU_WINDOW_SIZE;
-                                break;
-                            case 1:
-                                stSenderParam[i].unWindowSize = 6*RFTU_WINDOW_SIZE;
-                                break;
-                            case 2:
-                                stSenderParam[i].unWindowSize = 4*RFTU_WINDOW_SIZE;
-                                break;
-                            case 3:
-                                stSenderParam[i].unWindowSize = 4*RFTU_WINDOW_SIZE;
-                                break;
-                            case 4:
-                                stSenderParam[i].unWindowSize = 2*RFTU_WINDOW_SIZE;
-                                break;
-                            case 5:
-                                stSenderParam[i].unWindowSize = 2*RFTU_WINDOW_SIZE;
-                                break;
-                            default:
-                                stSenderParam[i].unWindowSize = RFTU_WINDOW_SIZE;
-                                break;
-                        }
-
                     }
 
                     // Threads creation

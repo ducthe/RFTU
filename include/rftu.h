@@ -137,11 +137,11 @@ unsigned long int SENDER_Get_Filesize(char *path);
 
 // Sender functions - in rftu_sender.c
 void* SENDER_Start(void* arg);
-void SENDER_AddAllPackages(struct g_stWindows *windows, unsigned char N, int file_fd, unsigned int *seq);
-void SENDER_Add_Package(struct g_stWindows *windows, unsigned char N, int file_fd, unsigned int *seq, int index_finded);
-void SENDER_Send_Packages(struct g_stWindows *windows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all, char cThreadID);
-void SENDER_SetACKflag(struct g_stWindows *windows, unsigned char N, unsigned int seq);
-int SENDER_FindPacketseq(struct g_stWindows *windows, unsigned char N, unsigned int seq);
+void SENDER_AddAllPackages(struct g_stWindows *stWindows, unsigned char N, int file_fd, unsigned int *seq);
+void SENDER_Add_Package(struct g_stWindows *stWindows, unsigned char N, int file_fd, unsigned int *seq, int index_finded);
+void SENDER_Send_Packages(struct g_stWindows *stWindows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all, char cThreadID);
+void SENDER_SetACKflag(struct g_stWindows *stWindows, unsigned char N, unsigned int seq);
+int SENDER_FindPacketseq(struct g_stWindows *stWindows, unsigned char N, unsigned int seq);
 
 // Receiver Main functions - in mainReceiver.c
 unsigned char RECEIVER_Main(void);
