@@ -47,19 +47,11 @@
 // RFTU Default Settings
 #define RFTU_FRAME_SIZE     1024
 #define RFTU_TIMEOUT		3
-#define RFTU_WELCOME_PORT   8880
+#define RFTU_WELCOME_PORT   8888
 #define RFTU_MAX_RETRY		10
 #define RFTU_WINDOW_SIZE	8
 
 #define THREAD_NUMBER       8
-#define RFTU_PORT_0         8881
-#define RFTU_PORT_1         8882
-#define RFTU_PORT_2         8883
-#define RFTU_PORT_3         8884
-#define RFTU_PORT_4         8885
-#define RFTU_PORT_5         8886
-#define RFTU_PORT_6         8887
-#define RFTU_PORT_7		    8888
 
 // RFTU Control Flags
 extern unsigned char flag_server;
