@@ -23,13 +23,13 @@ unsigned int unThreadNumber;
 char    cRFTUFileName[256];
 char    cRFTUIP[20];
 
-static int option;
+static int s_nOption;
 int main(int argc, char *argv[])
 {
     unThreadNumber = 1;
-    while((option = getopt(argc, argv, "f:t:sn:e:vh")) != -1)
+    while((s_nOption = getopt(argc, argv, "f:t:sn:e:vh")) != -1)
     {
-        switch(option)
+        switch(s_nOption)
         {
             case 'f':
                 if(MAIN_CheckFileExist(optarg) == RFTU_RET_OK)
