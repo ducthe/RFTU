@@ -120,8 +120,8 @@ extern char 				cRFTUFileName[256];
 extern unsigned long int  	ulRFTUFileSize;
 extern char 				cRFTUIP[20];
 extern unsigned short 		usRFTUid;
-extern unsigned char        ucAckLossRate;
-extern unsigned char        ucPacketLossRate;
+extern float        fAckLossRate;
+extern float        fPacketLossRate;
 
 
 /*-----------------------------*/

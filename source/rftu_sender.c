@@ -285,7 +285,7 @@ void SENDER_SendPacket(struct g_stWindows *stWindows, unsigned char N, int nSock
             /* DROP */
             if(ucFlagPacketDrop == YES)
             {
-                if(rand() % (100 / ucPacketLossRate) == 0)
+                if(rand() % ((unsigned char)(100 / fPacketLossRate)) == 0)
                 {
                     printf("SENDER[%d] Dropped packet with sequence number: %u\n", cThreadID, stWindows[pos_check].stRFTUPacketData.unSeq);
                     stWindows[pos_check].ucSent = YES;

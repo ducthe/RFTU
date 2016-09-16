@@ -135,7 +135,7 @@ void* RECEIVER_Start(void* arg)
                                         /* DROP */
                                         if(ucFlagACKDrop == YES)
                                         {
-                                            if (rand() % (100 / ucAckLossRate) == 0)
+                                            if (rand() % ((unsigned char)(100 / fAckLossRate)) == 0)
                                             {
                                                 if(ucFlagVerbose == YES)
                                                 {

@@ -15,8 +15,8 @@ unsigned char ucFlagIP = NO;
 unsigned char ucFlagACKDrop = NO;
 unsigned char ucFlagPacketDrop = NO;
 
-unsigned char ucAckLossRate;
-unsigned char ucPacketLossRate;
+float fAckLossRate;
+float fPacketLossRate;
 
 unsigned int unThreadNumber;
 
@@ -77,14 +77,14 @@ int main(int argc, char *argv[])
                 if(ucFlagServer == YES)
                 {
                     ucFlagACKDrop = YES;
-                    ucAckLossRate = (unsigned char) atoi(optarg);
-                    printf("[RFTU] ACK loss rate  = %d\n", ucAckLossRate);
+                    fAckLossRate = atof(optarg);
+                    printf("[RFTU] ACK loss rate  = %.2f\n", fAckLossRate);
                 }
                 else
                 {
                     ucFlagPacketDrop = YES;
-                    ucPacketLossRate = (unsigned char) atoi(optarg);
-                    printf("[RFTU] Packet loss rate = %d\n", ucPacketLossRate);
+                    fPacketLossRate = atof(optarg);
+                    printf("[RFTU] Packet loss rate = %.2f\n", fPacketLossRate);
                 }
                 break;
             case 'v':
