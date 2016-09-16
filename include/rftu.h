@@ -45,7 +45,7 @@
 #define NO  0
 
 // RFTU Default Settings
-#define RFTU_FRAME_SIZE     1024
+#define RFTU_FRAME_SIZE     15950
 #define RFTU_TIMEOUT		3
 #define RFTU_WELCOME_PORT   8888
 #define RFTU_MAX_RETRY		10
@@ -60,6 +60,9 @@ extern unsigned char ucFlagFile;
 extern unsigned char ucFlagIP;
 extern unsigned char ucFlagACKDrop;
 extern unsigned char ucFlagPacketDrop;
+
+// RFTU Thread Numbers
+extern unsigned int unThreadNumber;
 
 // RFTU Data Package
 struct g_stRFTUPacketData {

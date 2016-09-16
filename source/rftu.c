@@ -1,15 +1,14 @@
 /*
  * Filename: main.c
  * Author: Richard + Peter
+ * Contributor: Kevin
  * Date: 06-Sep-2016
- *
- *
  */
 /*************************************************************************/
 /* Include file */
 #include "rftu.h"
-/*Defined*/
 
+/*Defined*/
 unsigned char ucFlagVerbose = NO;
 unsigned char ucFlagServer = NO;
 unsigned char ucFlagFile = NO;
@@ -20,13 +19,16 @@ unsigned char ucFlagPacketDrop = NO;
 unsigned char ucAckLossRate;
 unsigned char ucPacketLossRate;
 
+unsigned int unThreadNumber;
+
 char    cRFTUFileName[256];
 char    cRFTUIP[20];
 
 static int option;
 int main(int argc, char *argv[])
 {
-    while((option = getopt(argc, argv, "f:t:se:vh")) != -1)
+    unThreadNumber = 1;
+    while((option = getopt(argc, argv, "f:t:sn:e:vh")) != -1)
     {
         switch(option)
         {
@@ -39,7 +41,7 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    printf("%s\n", "Error: File doesn't exist!!!!");
+                    printf("%s\n", "[RFTU]ERROR: File doesn't exist!");
                     MAIN_disp_help();
                     return RFTU_RET_ERROR;
                 }
@@ -53,7 +55,7 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    printf("%s\n", "Error: IP is wrong!!!");
+                    printf("%s\n", "[RFTU] ERROR: Wrong IP!");
                     MAIN_disp_help();
                     return RFTU_RET_ERROR;
                 }
@@ -61,18 +63,29 @@ int main(int argc, char *argv[])
             case 's':
                 ucFlagServer = YES;
                 break;
+            case 'n':
+                if (ucFlagServer)
+                {
+                    unThreadNumber = (unsigned char) atoi(optarg);
+                }
+                if (unThreadNumber > THREAD_NUMBER)
+                {
+                    printf("[RFTU] ERROR: The desired thread numbers is bigger than the maximum threads available to use.\n");
+                    return RFTU_RET_ERROR;
+                }
+                break;
             case 'e':
                 if(ucFlagServer == YES)
                 {
                     ucFlagACKDrop = YES;
                     ucAckLossRate = (unsigned char) atoi(optarg);
-                    printf("ucAckLossRate = %d\n", ucAckLossRate);
+                    printf("[RFTU] ACK loss rate  = %d\n", ucAckLossRate);
                 }
                 else
                 {
                     ucFlagPacketDrop = YES;
                     ucPacketLossRate = (unsigned char) atoi(optarg);
-                    printf("ucPacketLossRate = %d\n", ucPacketLossRate);
+                    printf("[RFTU] Packet loss rate = %d\n", ucPacketLossRate);
                 }
                 break;
             case 'v':

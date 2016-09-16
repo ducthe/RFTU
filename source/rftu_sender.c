@@ -1,13 +1,12 @@
-/*
+/*************************************************************************
  * Filename: rftu_sender.c
  * Author: OCTO team (Issac, Kevin)
  * Contributor: Richard
  * Date: 06-Sep-2016
- */
-/*************************************************************************/
+*************************************************************************/
 #include "rftu.h"
 
-unsigned int number_pkt_loss = 0;
+unsigned int unNumberPktLoss = 0;
 
 void* SENDER_Start(void *arg)
 {
@@ -40,7 +39,7 @@ void* SENDER_Start(void *arg)
     ReceiverAddr.sin_port = htons(stSenderParam.nPortNumber);
     if (inet_aton(cRFTUIP, &ReceiverAddr.sin_addr) == 0)
     {
-        printf("[SENDER(%d)] ERROR: The address is invalid\n", stSenderParam.cThreadID);
+        printf("SENDER[%d] ERROR: The address is invalid\n", stSenderParam.cThreadID);
         return;
     }
     memset(ReceiverAddr.sin_zero, '\0', sizeof(ReceiverAddr.sin_zero));
@@ -49,7 +48,7 @@ void* SENDER_Start(void *arg)
     // Socket creation
     if ((nSocketFd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     {
-        printf("[SENDER(%d)] ERROR: Socket creation fails\n", stSenderParam.cThreadID);
+        printf("SENDER[%d] ERROR: Socket creation fails\n", stSenderParam.cThreadID);
         return;
     }
 
@@ -69,7 +68,7 @@ void* SENDER_Start(void *arg)
         {
             if((file_fd = open(cRFTUFileName, O_RDONLY)) == -1)
             {
-                printf("[SENDER(%d)] ERROR: Openning file fails\n", stSenderParam.cThreadID);
+                printf("SENDER[%d] ERROR: Openning file fails\n", stSenderParam.cThreadID);
                 free(stWindows);
                 close(nSocketFd);
                 return;
@@ -84,8 +83,8 @@ void* SENDER_Start(void *arg)
 
             // Sending the first window of data
             SENDER_AddAllPackages(stWindows, N, file_fd, &Sn);
-            printf("[SENDER(%d)] All packets are added into sending window.\n", stSenderParam.cThreadID);
-            printf("[SENDER(%d)] Sending first window of data.\n", stSenderParam.cThreadID);
+            printf("SENDER[%d] All packets are added into sending window.\n", stSenderParam.cThreadID);
+            printf("SENDER[%d] Sending first window of data.\n", stSenderParam.cThreadID);
             SENDER_Send_Packages(stWindows, N, nSocketFd, &ReceiverAddr, NO, stSenderParam.cThreadID);
         }
         // Initialize stTimeOut
@@ -100,8 +99,8 @@ void* SENDER_Start(void *arg)
         nSelectResult = select(FD_SETSIZE, &fds, NULL, NULL, &stTimeOut);
         if (nSelectResult == -1) // Error
         {
-            printf("[SENDER(%d)] ERROR: Error while waiting for packets\n", stSenderParam.cThreadID);
-            printf("[SENDER(%d)] ERROR: %s\n\n", stSenderParam.cThreadID, strerror(errno));
+            printf("SENDER[%d] ERROR: Error while waiting for packets\n", stSenderParam.cThreadID);
+            printf("SENDER[%d] ERROR: %s\n\n", stSenderParam.cThreadID, strerror(errno));
             free(stWindows);
             close(nSocketFd);
             return;
@@ -111,7 +110,7 @@ void* SENDER_Start(void *arg)
             ucErrorCnt++;
             if (ucErrorCnt == RFTU_MAX_RETRY)
             {
-                printf("[SENDER(%d)] ERROR: Over the limit of sending times\n", stSenderParam.cThreadID);
+                printf("SENDER[%d] ERROR: Over the limit of sending times\n", stSenderParam.cThreadID);
                 free(stWindows);
                 close(nSocketFd);
                 return;
@@ -133,7 +132,7 @@ void* SENDER_Start(void *arg)
                     {
                         if (ucFlagVerbose)
                         {
-                            printf("[SENDER(%d)] ACK sequence number received: %u\n", stSenderParam.cThreadID, stRFTUPacketDataRecv.unSeq);
+                            printf("SENDER[%d] ACK sequence number received: %u\n", stSenderParam.cThreadID, stRFTUPacketDataRecv.unSeq);
                         }
                         // Set ACK flag for every packet received ACK
                         SENDER_SetACKflag(stWindows, N, stRFTUPacketDataRecv.unSeq);
@@ -149,8 +148,8 @@ void* SENDER_Start(void *arg)
                     break;
 
                 case RFTU_CMD_COMPLETED:
-                    printf("[SENDER(%d)] File transfer completed.\n", stSenderParam.cThreadID);
-                    printf("[SENDER(%d)] Total packets loss: %d\n", stSenderParam.cThreadID, number_pkt_loss);
+                    printf("SENDER[%d] File transfer completed.\n", stSenderParam.cThreadID);
+                    printf("SENDER[%d] Total packets loss: %d\n", stSenderParam.cThreadID, unNumberPktLoss);
                     if (cSending == YES)
                     {
                         free(stWindows);
@@ -163,7 +162,7 @@ void* SENDER_Start(void *arg)
                 default:    // others
                     if (ucErrorCnt == RFTU_MAX_RETRY)
                     {
-                        printf("[SENDER(%d)] ERROR: Over the limit of sending times\n", stSenderParam.cThreadID);
+                        printf("SENDER[%d] ERROR: Over the limit of sending times\n", stSenderParam.cThreadID);
                         free(stWindows);
                         close(file_fd);
                         close(nSocketFd);
@@ -281,16 +280,16 @@ void SENDER_Send_Packages(struct g_stWindows *stWindows, unsigned char N, int nS
         {
             if(ucFlagVerbose)
             {
-                printf("[SENDER(%d)] Send DATA with sequence number: %u\n", cThreadID, stWindows[pos_check].stRFTUPacketData.unSeq);
+                printf("SENDER[%d] Send DATA with sequence number: %u\n", cThreadID, stWindows[pos_check].stRFTUPacketData.unSeq);
             }
 // DROPPER
             if(ucFlagPacketDrop == YES)
             {
                 if(rand() % (100 / ucPacketLossRate) == 0)
                 {
-                    printf("[SENDER(%d)] Dropped packet with sequence number: %u\n", cThreadID, stWindows[pos_check].stRFTUPacketData.unSeq);
+                    printf("SENDER[%d] Dropped packet with sequence number: %u\n", cThreadID, stWindows[pos_check].stRFTUPacketData.unSeq);
                     stWindows[pos_check].ucSent = YES;
-                    number_pkt_loss++;
+                    unNumberPktLoss++;
                     continue;
                 }
             }
