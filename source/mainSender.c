@@ -1,9 +1,9 @@
 /*
- * Filename: mainSender.c
- * Author: OCTO team (Kevin)
- * Date: 13-Sep-2016
- */
-/*************************************************************************/
+*   Filename    : mainSender.c
+*   Author      : Kevin (OCTO Team)
+*   Date        : 13-Sep-2016
+*/
+
 #include "rftu.h"
 
 unsigned char SENDER_Main(void)
@@ -11,19 +11,19 @@ unsigned char SENDER_Main(void)
     pthread_t *pth;
     struct g_stSenderParam *stSenderParam;
 
-    // Sender variables
-    struct g_stFileInfo stFileInfo;  // file info to be sent to receiver in INIT message
-    struct g_stRFTUPacketData stRFTUPacketDataSend;    // package to be sent
-    struct g_stRFTUPacketData stRFTUPacketDataReceive; // used to store received package
-    struct g_stPortInfo stPortInfoReceive;     // used to store received information about port
+    /* Sender variables */
+    struct g_stFileInfo stFileInfo;                    /* File info to be sent to receiver in INIT message */
+    struct g_stRFTUPacketData stRFTUPacketDataSend;    /* Packet to be sent */
+    struct g_stRFTUPacketData stRFTUPacketDataReceive; /* Used to store received package */
+    struct g_stPortInfo stPortInfoReceive;             /* Used to store received information about port */
 
-    struct sockaddr_in stReceiverAddr; // receiver address
+    struct sockaddr_in stReceiverAddr; /* Receiver address */
     socklen_t socklen = 0;
-    int nSocketFd; // socket file descriptor
+    int nSocketFd;  /* Socket file descriptor */
 
     unsigned char ucErrorCnt = 0;
 
-    fd_set fds; //set of file descriptors to be monitored by select()
+    fd_set fds; /* Set of file descriptors to be monitored by select() */
     int nSelectResult;
     struct timeval stTimeOut;
 
@@ -33,20 +33,18 @@ unsigned char SENDER_Main(void)
     unsigned long int *ulFSize;
     unsigned long int *ulFPoint;
 
-    // File info setup
+    /* File info setup */
     cTmp = (char*)malloc(sizeof(cRFTUFileName));
     strcpy(cTmp, cRFTUFileName);
-    strcpy(stFileInfo.cFileName, SENDER_Get_Filename(cTmp));
+    strcpy(stFileInfo.cFileName, SENDER_GetFileName(cTmp));
     free(cTmp);
-    stFileInfo.ulFileSize = SENDER_Get_Filesize(cRFTUFileName);
+    stFileInfo.ulFileSize = SENDER_GetFileSize(cRFTUFileName);
     ulRFTUFileSize = stFileInfo.ulFileSize;
     printf("[RECEIVER Main] FILE INFO:\n    File name: %s\n    File size: %ld bytes\n", stFileInfo.cFileName, stFileInfo.ulFileSize);
-    // printf("[SENDER Main] File name: %s\n", stFileInfo.cFileName);
-    // printf("[SENDER Main] File size: %lu bytes\n", ulRFTUFileSize);
 
-    // Configure settings of the receiver address struct
+    /* Configure settings of the receiver address struct */
     stReceiverAddr.sin_family = AF_INET;
-    stReceiverAddr.sin_port = htons(RFTU_WELCOME_PORT); //8880
+    stReceiverAddr.sin_port = htons(RFTU_WELCOME_PORT); /* 8880 */
     if (inet_aton(cRFTUIP, &stReceiverAddr.sin_addr) == 0)
     {
         printf("[SENDER Main] ERROR: The address is invalid\n");
@@ -55,37 +53,37 @@ unsigned char SENDER_Main(void)
     memset(stReceiverAddr.sin_zero, '\0', sizeof(stReceiverAddr.sin_zero));
     socklen = sizeof(stReceiverAddr);
 
-    // Socket creation
+    /* Socket creation */
     if ((nSocketFd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     {
         printf("[SENDER Main] ERROR: Socket creation fails\n");
         return RFTU_RET_ERROR;
     }
 
-    /*---START---*/
+    /* ---START--- */
     ucErrorCnt = 0;
     while(1)
     {
-        // Create INIT packet
+        /* Create INIT packet */
         stRFTUPacketDataSend.ucCmd = RFTU_CMD_INIT;
         stRFTUPacketDataSend.ucID = 0;
         stRFTUPacketDataSend.unSeq = 0;
         stRFTUPacketDataSend.usSize = sizeof(stFileInfo);
         memcpy(stRFTUPacketDataSend.ucData, &stFileInfo, sizeof(stFileInfo));
 
-        // Sent the INIT packet
+        /* Sent the INIT packet */
         printf("[SENDER Main] Sending INIT message\n");
         sendto(nSocketFd, &stRFTUPacketDataSend, sizeof(stRFTUPacketDataSend), 0, (struct sockaddr*)&stReceiverAddr, socklen);
 
-        // Initialize stTimeOut
+        /* Initialize stTimeOut */
         stTimeOut.tv_sec = RFTU_TIMEOUT;
         stTimeOut.tv_usec = 0;
 
-        // Set up the set of descriptors
-        FD_ZERO(&fds);  // Let the file descriptor set becomes all zero
-        FD_SET(nSocketFd, &fds);  // Add the nSocketFd to the set
+        /* Set up the set of descriptors */
+        FD_ZERO(&fds);  /* Let the file descriptor set becomes all zero */
+        FD_SET(nSocketFd, &fds);  /* Add the nSocketFd to the set */
 
-        // Check time out using select() function
+        /* Check time out using select() function */
         nSelectResult = select(FD_SETSIZE, &fds, NULL, NULL, &stTimeOut);
         if (nSelectResult == -1) // Error
         {
@@ -94,7 +92,7 @@ unsigned char SENDER_Main(void)
             close(nSocketFd);
             return RFTU_RET_ERROR;
         }
-        else if (nSelectResult == 0) // Time out
+        else if (nSelectResult == 0) /* Time out */
         {
             ucErrorCnt++;
             if (ucErrorCnt == RFTU_MAX_RETRY)
@@ -107,7 +105,7 @@ unsigned char SENDER_Main(void)
         else
         {
             recvfrom(nSocketFd, &stRFTUPacketDataReceive, sizeof(stRFTUPacketDataReceive), 0, (struct sockaddr*)&stReceiverAddr, &socklen);
-            // Switch the CMD fields in the received msg
+            /* Switch CMD field in the received message */
             switch(stRFTUPacketDataReceive.ucCmd)
             {
                 case RFTU_CMD_READY:
@@ -117,12 +115,12 @@ unsigned char SENDER_Main(void)
                     stSenderParam = (struct g_stSenderParam *) malloc(stPortInfoReceive.ucNumberOfPort * sizeof(struct g_stSenderParam));
                     ulFSize = (unsigned long int *)malloc(stPortInfoReceive.ucNumberOfPort * sizeof(unsigned long int));
                     ulFPoint = (unsigned long int *)malloc(stPortInfoReceive.ucNumberOfPort * sizeof(unsigned long int));
-                    MAIN_div_file(ulRFTUFileSize, ulFSize, ulFPoint, stPortInfoReceive.ucNumberOfPort);
+                    MAIN_FileDiv(ulRFTUFileSize, ulFSize, ulFPoint, stPortInfoReceive.ucNumberOfPort);
                     for (i = 0; i < stPortInfoReceive.ucNumberOfPort; i++)
                     {
                         printf("[SENDER Main] Size of portion %d of the file: %lu (bytes)\n", i+1, *(ulFSize + i));
                     }
-                    usRFTUid = stRFTUPacketDataReceive.ucID;  // Get transmission ID
+                    usRFTUid = stRFTUPacketDataReceive.ucID;  /* Get transmission ID */
 
                     for (i = 0; i < stPortInfoReceive.ucNumberOfPort; i++)
                     {
@@ -133,7 +131,7 @@ unsigned char SENDER_Main(void)
                         (stSenderParam + i)->cThreadID = i;
                     }
 
-                    // Threads creation
+                    /* Threads creation */
                     {
                         int *m;
                         int a = 0;
@@ -184,12 +182,12 @@ unsigned char SENDER_Main(void)
     }
 }
 
-char* SENDER_Get_Filename(char *path)
+char* SENDER_GetFileName(char *path)
 {
     return basename(path);
 }
 
-unsigned long int SENDER_Get_Filesize(char *path)
+unsigned long int SENDER_GetFileSize(char *path)
 {
     unsigned long int sz;
     int fd;

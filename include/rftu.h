@@ -1,9 +1,9 @@
 /*
-* Filename: rftu.h
-* Author: OCTO team (Issac, Kevin, Peter, Richard)
-* Date: 06-Sep-2016
+*   Filename    : rftu.h
+*   Author      : Issac, Kevin, Peter, Richard (OCTO Team)
+*   Date        : 06-Sep-2016
 */
-/*************************************************************************/
+
 #ifndef __RFTU_H__
 #define __RFTU_H__
 
@@ -128,30 +128,30 @@ extern unsigned char        ucPacketLossRate;
 /*-----FUNCTION PROTOTYPES-----*/
 /*-----------------------------*/
 // Global functions
-void 			MAIN_disp_help(void);
-unsigned char 	MAIN_check_ip(char *ip);
-unsigned char 	MAIN_check_file_exist(char *path);
-void 			MAIN_div_file(unsigned long int filesize, unsigned long int *fsize, unsigned long int *fpoint, unsigned char ucPort);
+void 			MAIN_DispHelp(void);
+unsigned char 	MAIN_CheckIP(char *ip);
+unsigned char 	MAIN_CheckFileExist(char *path);
+void 			MAIN_FileDiv(unsigned long int filesize, unsigned long int *fsize, unsigned long int *fpoint, unsigned char ucPort);
 
 // Sender Main functions - in mainSender.c
 unsigned char SENDER_Main(void);
-char* SENDER_Get_Filename(char *path);
-unsigned long int SENDER_Get_Filesize(char *path);
+char* SENDER_GetFileName(char *path);
+unsigned long int SENDER_GetFileSize(char *path);
 
 // Sender functions - in rftu_sender.c
 void* SENDER_Start(void* arg);
-void SENDER_AddAllPackages(struct g_stWindows *stWindows, unsigned char N, int file_fd, unsigned int *seq);
-void SENDER_Add_Package(struct g_stWindows *stWindows, unsigned char N, int file_fd, unsigned int *seq, int index_finded);
-void SENDER_Send_Packages(struct g_stWindows *stWindows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all, char cThreadID);
-void SENDER_SetACKflag(struct g_stWindows *stWindows, unsigned char N, unsigned int seq);
-int SENDER_FindPacketseq(struct g_stWindows *stWindows, unsigned char N, unsigned int seq);
+void SENDER_AddAllPacket(struct g_stWindows *stWindows, unsigned char N, int file_fd, unsigned int *seq);
+void SENDER_AddPacket(struct g_stWindows *stWindows, unsigned char N, int file_fd, unsigned int *seq, int index_finded);
+void SENDER_SendPacket(struct g_stWindows *stWindows, unsigned char N, int socket_fd, struct sockaddr_in *si_other, unsigned char all, char cThreadID);
+void SENDER_SetAckFlag(struct g_stWindows *stWindows, unsigned char N, unsigned int seq);
+int SENDER_FindPacketSeq(struct g_stWindows *stWindows, unsigned char N, unsigned int seq);
 
 // Receiver Main functions - in mainReceiver.c
 unsigned char RECEIVER_Main(void);
 
 // Receiver functions - in rftu_receiver.c
 void* RECEIVER_Start(void* arg);
-int RECEIVER_isSeqExistInBuffer(struct g_stRFTUPacketData *stRFTUPacketDataBuffer, unsigned int BUFFER_SIZE, unsigned int seq, unsigned int *unRecvBufferSize);
+int RECEIVER_IsSeqExistInBuffer(struct g_stRFTUPacketData *stRFTUPacketDataBuffer, unsigned int BUFFER_SIZE, unsigned int seq, unsigned int *unRecvBufferSize);
 void RECEIVER_InsertPacket(struct g_stRFTUPacketData *rcv_buffer, struct g_stRFTUPacketData rftu_pkt_rcv, unsigned int *unRecvBufferSize);
 int RECEIVER_IsFullBuffer(unsigned int *unRecvBufferSize);
 void RECEIVER_ResetBuffer(struct g_stRFTUPacketData *stRFTUPacketDataBuffer, unsigned int *unRecvBufferSize);

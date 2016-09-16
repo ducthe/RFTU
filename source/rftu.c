@@ -1,14 +1,13 @@
 /*
- * Filename: main.c
- * Author: Richard + Peter
- * Contributor: Kevin
- * Date: 06-Sep-2016
- */
-/*************************************************************************/
+*   Filename    : rftu.c
+*   Author      : Richard, Peter (OCTO Team)
+*   Contributor : Kevin
+*   Date        : 06-Sep-2016
+*/
+
 /* Include file */
 #include "rftu.h"
 
-/*Defined*/
 unsigned char ucFlagVerbose = NO;
 unsigned char ucFlagServer = NO;
 unsigned char ucFlagFile = NO;
@@ -33,7 +32,7 @@ int main(int argc, char *argv[])
         switch(option)
         {
             case 'f':
-                if(MAIN_check_file_exist(optarg) == RFTU_RET_OK)
+                if(MAIN_CheckFileExist(optarg) == RFTU_RET_OK)
                 {
                     ucFlagFile = YES;
                     memset(cRFTUFileName, '\0', strlen(cRFTUFileName));
@@ -42,12 +41,12 @@ int main(int argc, char *argv[])
                 else
                 {
                     printf("%s\n", "[RFTU]ERROR: File doesn't exist!");
-                    MAIN_disp_help();
+                    MAIN_DispHelp();
                     return RFTU_RET_ERROR;
                 }
                 break;
             case 't':
-                if(MAIN_check_ip(optarg) == YES)
+                if(MAIN_CheckIP(optarg) == YES)
                 {
                     ucFlagIP = YES;
                     memset(cRFTUIP, '\0', strlen(cRFTUIP));
@@ -56,7 +55,7 @@ int main(int argc, char *argv[])
                 else
                 {
                     printf("%s\n", "[RFTU] ERROR: Wrong IP!");
-                    MAIN_disp_help();
+                    MAIN_DispHelp();
                     return RFTU_RET_ERROR;
                 }
                 break;
@@ -92,10 +91,10 @@ int main(int argc, char *argv[])
                 ucFlagVerbose = YES;
                 break;
             case 'h':
-                MAIN_disp_help();
+                MAIN_DispHelp();
                 break;
             default:
-                MAIN_disp_help();
+                MAIN_DispHelp();
                 return RFTU_RET_ERROR;
         }
     }
@@ -114,7 +113,7 @@ int main(int argc, char *argv[])
     return RFTU_RET_OK;
 }
 
-unsigned char MAIN_check_ip(char *path)
+unsigned char MAIN_CheckIP(char *path)
 {
     unsigned int addr[4];
     int i;
@@ -133,21 +132,21 @@ unsigned char MAIN_check_ip(char *path)
     return YES;
 }
 
-unsigned char MAIN_check_file_exist(char *path)
+unsigned char MAIN_CheckFileExist(char *path)
 {
     if ( access( path, F_OK | R_OK) != -1 )
     {
-        // file exist
+        /* File exists */
         return RFTU_RET_OK;
     }
     else
     {
-        // file doesn't exist
+        /* File doesn't exist */
         return RFTU_RET_ERROR;
     }
 }
 
-void MAIN_disp_help(void)
+void MAIN_DispHelp(void)
 {
     printf("\n%s\n\n", "\
             Here are instructions for you\n\n\n\
@@ -170,7 +169,7 @@ void MAIN_disp_help(void)
             -e: Set ACK or packet loss");
 }
 
-void MAIN_div_file(unsigned long int filesize, unsigned long int *fsize, unsigned long int *fpoint, unsigned char ucPort)
+void MAIN_FileDiv(unsigned long int filesize, unsigned long int *fsize, unsigned long int *fpoint, unsigned char ucPort)
 {
     int i;
     unsigned long int n;

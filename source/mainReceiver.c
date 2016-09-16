@@ -1,15 +1,15 @@
 /*
- * Filename: mainReceiver.c
- * Author: OCTO team (Kevin)
- * Date: 13-Sep-2016
- */
-/*************************************************************************/
+*   Filename    : mainReceiver.c
+*   Author      : Kevin (OCTO Team)
+*   Date        : 13-Sep-2016
+*/
+
 #include "rftu.h"
 
 char path[255] = "/";
 struct sockaddr_in stSenderAddr, stReceiverAddr;
 
-struct g_stFileInfo stFileInfo; // File transfered
+struct g_stFileInfo stFileInfo; /* File transfered */
 struct g_stRFTUPacketData stRFTUPacketDataSend;
 struct g_stRFTUPacketData stRFTUPacketDataReceive;
 struct g_stPortInfo stPortInfo;
@@ -29,19 +29,19 @@ unsigned char RECEIVER_Main(void)
 {
     const unsigned int RFTU_PORT[THREAD_NUMBER] = {8880, 8881, 8882, 8883, 8884, 8885, 8886, 8887};
     unsigned char ucErrorCnt = 0;
-    int nSocketFD; // socket file descriptor
+    int nSocketFD;  /* Socket file descriptor */
     int *nFileDescriptor;
     socklen_t socklen = 0;
     int i;
 
-    nSocketFD = socket(PF_INET, SOCK_DGRAM, 0); // socket DGRAM
+    nSocketFD = socket(PF_INET, SOCK_DGRAM, 0); /* DGRAM Socket */
     if(nSocketFD == -1)
     {
         printf("[RECEIVER Main] ERROR: Fail to create socket\n");
         return;
     }
 
-    // Init socket structure
+    /* Init socket structure */
     memset((char *) &stReceiverAddr, 0, sizeof(stReceiverAddr));
     stReceiverAddr.sin_family      = AF_INET;
     stReceiverAddr.sin_port        = htons(RFTU_WELCOME_PORT);
@@ -49,7 +49,7 @@ unsigned char RECEIVER_Main(void)
 
     socklen = sizeof(stSenderAddr);
 
-    // Create a socket for receiver
+    /* Create a socket for receiver */
     if (bind(nSocketFD, (struct sockaddr *)&stReceiverAddr, sizeof(stReceiverAddr)) != 0)
     {
         printf("[RECEIVER Main] Not binded\n");
@@ -61,13 +61,13 @@ unsigned char RECEIVER_Main(void)
     {
         stTimeOut.tv_sec = RFTU_TIMEOUT;
         stTimeOut.tv_usec = 0;
-        // Wait Packet
+        /* Wait for Packet */
         FD_ZERO (&set);
         FD_SET (nSocketFD, &set);
         nWaiting = select(FD_SETSIZE, &set, NULL, NULL, &stTimeOut);
         switch(nWaiting)
         {
-            case 0:  // time out
+            case 0:  /* Time out */
                 ucErrorCnt++;
                 if (ucErrorCnt == RFTU_MAX_RETRY)
                 {
@@ -76,22 +76,22 @@ unsigned char RECEIVER_Main(void)
                     ucErrorCnt = 0;
                 }
                 break;
-            case -1: // An error occured
+            case -1: /* Error */
                 printf("[RECEIVER Main] ERROR: An error occured when nWaiting for INIT packet\n");
                 printf("[RECEIVER Main] ERROR: %s", strerror(errno));
                 break;
-            default: // Read new packet
+            default: /* Read received packet */
                 recvfrom(nSocketFD, &stRFTUPacketDataReceive, sizeof(stRFTUPacketDataReceive), 0, (struct sockaddr *)&stSenderAddr, &socklen);
-                // Check the commanders
+                /* Check commands */
                 switch(stRFTUPacketDataReceive.ucCmd)
                 {
                     case RFTU_CMD_INIT:
-                        // Open file
+                        /* Open File */
                         stFileInfo = *((struct g_stFileInfo *) &stRFTUPacketDataReceive.ucData);
                         printf("[RECEIVER Main] FILE INFO:\n    File name: %s\n    File size: %ld bytes\n", stFileInfo.cFileName, stFileInfo.ulFileSize);
                         ulRFTUFileSize = stFileInfo.ulFileSize;
 
-                        // Create the file to save
+                        /* Create the file to save */
                         strcpy(path,"/home/");
                         strcat(path, getlogin());
                         strcat(path, "/Desktop/");
@@ -104,21 +104,21 @@ unsigned char RECEIVER_Main(void)
                             if (*(nFileDescriptor + i) == -1)
                             {
                                 printf("[RECEIVER Main] ERROR: There is not enough space to write.\n");
-                                // Send command NOSPACE to sender
+                                /* Send command NOSPACE to sender */
                                 stRFTUPacketDataSend.ucCmd = RFTU_CMD_NOSPACE;
                                 sendto(nSocketFD, &stRFTUPacketDataSend, sizeof(stRFTUPacketDataSend) , 0 , (struct sockaddr *) &stSenderAddr, socklen);
                                 return RFTU_RET_ERROR;
                             }
                         }
-                        // Divide original file to parts
+                        /* Divide original file to a number of parts */
                         pth = (pthread_t *)malloc(unThreadNumber * sizeof(pthread_t));
                         stReceiverParam = (struct g_stReceiverParam *)malloc(unThreadNumber * sizeof(struct g_stReceiverParam));
                         ulFSize = (unsigned long int *)malloc(unThreadNumber * sizeof(unsigned long int));
                         ulFPoint = (unsigned long int *)malloc(unThreadNumber * sizeof(unsigned long int));
-                        MAIN_div_file(ulRFTUFileSize, ulFSize, ulFPoint, unThreadNumber);
+                        MAIN_FileDiv(ulRFTUFileSize, ulFSize, ulFPoint, unThreadNumber);
 
                         printf("[RECEIVER Main] Saving file to : %s\n", path);
-                        // Send command READY to sender
+                        /* Send command READY to sender */
                         stRFTUPacketDataSend.ucCmd = RFTU_CMD_READY;
                         stRFTUPacketDataSend.ucID = rand();
                         usRFTUid = stRFTUPacketDataSend.ucID;
@@ -134,7 +134,7 @@ unsigned char RECEIVER_Main(void)
                         printf("[RECEIVER Main] ID of transmission: %d\n", usRFTUid);
                         sendto(nSocketFD, &stRFTUPacketDataSend, sizeof(stRFTUPacketDataSend) , 0 , (struct sockaddr *) &stSenderAddr, socklen);
 
-                        // Parameters for threads
+                        /* Set parameters for threads */
                         for (i = 0; i < unThreadNumber; i++)
                         {
                             (stReceiverParam + i)->nPortNumber = RFTU_PORT[i];
@@ -144,7 +144,7 @@ unsigned char RECEIVER_Main(void)
                             (stReceiverParam + i)->cThreadID = i;
                         }
 
-                        // Thread creation
+                        /* Thread creation */
                         {
                             int *m;
                             int a = 0;
