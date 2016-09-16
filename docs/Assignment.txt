@@ -1,11 +1,4 @@
 /**
- * Author: Richard
- * Date: 09/09/2016
- * version 1
- * Here are assignments to mentees: Richard, Peter, Kevin & ISAAC
- */
-
-/**
  * [Version_1 description]
  * Completing period: 08/31/2016 --> 09/08/2016
  */

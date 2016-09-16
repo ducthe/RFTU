@@ -1,0 +1,30 @@
+
+                            RFTU MANUAL
+1. Instruction
+    Show help information:    rftu -h
+    --------------------------------------------
+    There are two steps to run rftu application:
+    (1) Initializing the receiver with command:
+            {rftu -s} [-n ThreadNumber] [-e AckLossRate] [-v]
+    (2) Initializing the sender with command:
+            {rftu -f /path/filename -t destinationIP} [-e PacketLossRate] [-v]
+
+2. Notes
+    { }: Imperatively
+    [ ]: Optionally 
+    -s: Run as server mode. Files will be overwriten if existed
+    -n: Set number of threads to be used when run as server
+    -f: path to file that will be sent, must have -t option
+    -t: IP of destination address, in format X.X.X.X, in pair with -f option
+    -v: show progress information, this will slow down the progress
+    -e: Set ACK loss (server) or packet loss (client)
+
+CONTACT INFORMATION
+    OCTO team - Humax Vietnam R&D Center
+    Members:
+        Nguyen Xuan Quyen (Alex)    <nxquyen@humaxdigital.com>
+        Cao Ba Cuong (Blue)         <cbcuong@humaxdigital.com>
+        Nguyen Mau Dung (Richard)   <nmdung@humaxdigital.com>
+        Vu Duc The (Peter)          <vdthe@humaxdigital.com>
+        Tran Hong Hai (Kevin)       <thhai@humaxdigital.com>
+        Mai Xuann Hoa (Issac)       <mxhoa@humaxdigital.com>
